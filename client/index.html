@@ -23,7 +23,7 @@
             margin: 0 auto;
         }
 
-        .main-menu, .lobby-view, .create-lobby {
+        .main-menu, .lobby-view, .create-lobby, .game-view {
             background: white;
             border-radius: 15px;
             padding: 30px;
@@ -32,7 +32,7 @@
             display: none;
         }
 
-        .main-menu.active, .lobby-view.active, .create-lobby.active {
+        .main-menu.active, .lobby-view.active, .create-lobby.active, .game-view.active {
             display: block;
         }
 
@@ -101,6 +101,7 @@
             display: flex;
             gap: 15px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -256,6 +257,7 @@
             margin-top: 30px;
             padding-top: 20px;
             border-top: 2px solid #f0f0f0;
+            flex-wrap: wrap;
         }
 
         .code-display {
@@ -267,6 +269,28 @@
             font-weight: bold;
             color: #667eea;
             margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .code-display .code-value {
+            letter-spacing: 3px;
+            font-size: 24px;
+        }
+
+        .code-display .hide-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .code-display .hide-btn:hover {
+            background: #e0e0e0;
         }
 
         .pagination {
@@ -274,6 +298,7 @@
             justify-content: center;
             gap: 10px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .pagination button {
@@ -370,6 +395,122 @@
             }
         }
 
+        /* Game View Styles */
+        .game-view .game-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .game-view .game-header h1 {
+            font-size: 32px;
+            color: #333;
+        }
+
+        .game-view .game-header .game-mode {
+            color: #667eea;
+            font-size: 18px;
+            margin-top: 5px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            max-width: 500px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .game-tile {
+            aspect-ratio: 1;
+            border-radius: 15px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 24px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .game-tile:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        }
+
+        .game-tile:active {
+            transform: scale(0.95);
+        }
+
+        .game-tile-0 { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .game-tile-1 { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .game-tile-2 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .game-tile-3 { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+        .game-tile-4 { background: linear-gradient(135deg, #fa709a, #fee140); }
+        .game-tile-5 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+        .game-tile-6 { background: linear-gradient(135deg, #fbc2eb, #a6c1ee); }
+        .game-tile-7 { background: linear-gradient(135deg, #84fab0, #8fd3f4); }
+
+        .game-tile.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .game-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .game-stats .stat {
+            text-align: center;
+        }
+
+        .game-stats .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .game-stats .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .join-by-code {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .join-by-code input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            min-width: 150px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-family: monospace;
+            font-size: 20px;
+        }
+
+        .join-by-code input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
         @media (max-width: 768px) {
             .lobby-grid {
                 grid-template-columns: 1fr;
@@ -386,6 +527,20 @@
             }
             
             .lobby-actions {
+                flex-direction: column;
+            }
+
+            .game-board {
+                grid-template-columns: repeat(2, 1fr);
+                max-width: 300px;
+            }
+
+            .game-stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .join-by-code {
                 flex-direction: column;
             }
         }
@@ -410,6 +565,12 @@
                 <div class="lobby-actions">
                     <button onclick="showCreateLobby()" class="btn btn-success">➕ Создать лобби</button>
                     <button onclick="refreshLobbies()" class="btn btn-secondary">🔄 Обновить</button>
+                </div>
+                
+                <div class="join-by-code">
+                    <span style="font-weight: 600; color: #333;">🔑 Войти по коду:</span>
+                    <input type="text" id="joinCodeInput" placeholder="Введите код" maxlength="6" />
+                    <button onclick="joinByCode()" class="btn btn-primary">Войти</button>
                 </div>
             </div>
 
@@ -447,7 +608,12 @@
             <div class="lobby-header">
                 <div>
                     <h2 id="lobbyTitle">Название лобби</h2>
-                    <div id="lobbyCodeDisplay" class="code-display" style="display:none;"></div>
+                    <div id="lobbyCodeDisplay" class="code-display" style="display:none;">
+                        <span>🔑 Код лобби:</span>
+                        <span class="code-value" id="codeValue">------</span>
+                        <button onclick="toggleCodeVisibility()" class="hide-btn" id="hideCodeBtn">👁️</button>
+                        <button onclick="copyLobbyCode()" class="btn btn-secondary" style="padding: 5px 15px;">📋</button>
+                    </div>
                 </div>
                 <button onclick="leaveLobby()" class="btn btn-danger">🚪 Выйти из лобби</button>
             </div>
@@ -460,20 +626,68 @@
             </div>
 
             <div class="lobby-actions-bar">
-                <button id="startGameBtn" onclick="startGame()" class="btn btn-success">▶️ Начать игру</button>
-                <button onclick="copyLobbyCode()" class="btn btn-secondary" id="copyCodeBtn" style="display:none;">📋 Скопировать код</button>
+                <button id="startGameBtn" onclick="showGameModes()" class="btn btn-success">▶️ Начать игру</button>
             </div>
+        </div>
+
+        <div id="gameView" class="game-view">
+            <div class="game-header">
+                <h1 id="gameTitle">🎮 Игра началась!</h1>
+                <div class="game-mode" id="gameModeDisplay">Режим: Угадай последовательность</div>
+            </div>
+
+            <div class="game-stats">
+                <div class="stat">
+                    <div class="stat-value" id="gamePlayersCount">2</div>
+                    <div class="stat-label">👥 Игроков</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="gameScore">0</div>
+                    <div class="stat-label">⭐ Очки</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="gameMoves">0</div>
+                    <div class="stat-label">🔄 Ходов</div>
+                </div>
+            </div>
+
+            <div class="game-board" id="gameBoard">
+                <!-- Игровые плитки будут сгенерированы здесь -->
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="leaveGame()" class="btn btn-danger">🚪 Выйти из игры</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно выбора режима -->
+    <div id="gameModeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:white; padding:30px; border-radius:15px; max-width:400px; width:90%;">
+            <h2 style="margin-bottom:20px;">Выберите режим игры</h2>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button onclick="startGameWithMode('Угадай последовательность')" class="btn btn-primary" style="width:100%;">
+                    🎯 Угадай последовательность
+                </button>
+            </div>
+            <button onclick="closeGameModes()" class="btn btn-secondary" style="width:100%; margin-top:15px;">Отмена</button>
         </div>
     </div>
 
     <script>
         // Конфигурация
-        const WS_URL = 'https://minigames-eb2w.onrender.com';
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const WS_URL = isLocal 
+            ? 'ws://localhost:3000' 
+            : 'wss://' + window.location.hostname;
+
         let ws = null;
         let currentPlayerId = null;
         let currentLobbyId = null;
         let currentPage = 0;
         let currentSearchQuery = '';
+        let codeVisible = true;
+        let gameState = null;
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
@@ -551,8 +765,8 @@
                     break;
 
                 case 'gameStarted':
+                    showGameView(data.lobby, data.gameMode);
                     showNotification('Игра началась! 🎮', 'success');
-                    // Здесь можно добавить переход в игровой экран
                     break;
 
                 case 'searchResults':
@@ -581,7 +795,6 @@
                     <h3>${lobby.name}</h3>
                     <div class="lobby-info">👥 ${lobby.currentPlayers}/${lobby.maxPlayers}</div>
                     <div class="lobby-info">${lobby.isPrivate ? '🔒 Закрыто' : '🔓 Открыто'}</div>
-                    ${lobby.isPrivate ? `<div class="lobby-info">Код: ${lobby.code}</div>` : ''}
                     <span class="lobby-status ${lobby.currentPlayers === lobby.maxPlayers ? 'status-full' : lobby.isPrivate ? 'status-private' : 'status-open'}">
                         ${lobby.currentPlayers === lobby.maxPlayers ? 'Заполнено' : lobby.isPrivate ? 'По коду' : 'Открыто'}
                     </span>
@@ -647,6 +860,23 @@
             }
         }
 
+        // Вход по коду
+        function joinByCode() {
+            const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+            if (!code) {
+                showNotification('Введите код', 'error');
+                return;
+            }
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'joinByCode',
+                    code: code
+                }));
+                document.getElementById('joinCodeInput').value = '';
+            }
+        }
+
         // Присоединение к лобби
         function joinLobby(lobbyId) {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -654,28 +884,26 @@
                 return;
             }
 
-            const lobby = findLobbyById(lobbyId);
-            if (lobby && lobby.isPrivate) {
-                const code = prompt('Введите код доступа:');
-                if (!code) return;
-                ws.send(JSON.stringify({
-                    type: 'joinLobby',
-                    lobbyId: lobbyId,
-                    code: code
-                }));
-            } else {
-                ws.send(JSON.stringify({
-                    type: 'joinLobby',
-                    lobbyId: lobbyId
-                }));
+            // Проверяем, есть ли код в карточке
+            const lobbyCard = document.querySelector(`[onclick="joinLobby(${lobbyId})"]`);
+            if (lobbyCard) {
+                const codeElement = lobbyCard.querySelector('.lobby-info:last-child');
+                if (codeElement && codeElement.textContent.includes('Код:')) {
+                    const code = prompt('Введите код доступа:');
+                    if (!code) return;
+                    ws.send(JSON.stringify({
+                        type: 'joinLobby',
+                        lobbyId: lobbyId,
+                        code: code.toUpperCase()
+                    }));
+                    return;
+                }
             }
-        }
-
-        // Поиск лобби по ID (для проверки)
-        function findLobbyById(id) {
-            // Здесь нужно получить данные из текущего списка
-            // В реальном приложении лучше хранить кэш лобби
-            return null;
+            
+            ws.send(JSON.stringify({
+                type: 'joinLobby',
+                lobbyId: lobbyId
+            }));
         }
 
         // Создание лобби
@@ -715,11 +943,21 @@
             }
         }
 
-        // Начать игру
-        function startGame() {
+        // Показать выбор режимов игры
+        function showGameModes() {
+            document.getElementById('gameModeModal').style.display = 'flex';
+        }
+
+        function closeGameModes() {
+            document.getElementById('gameModeModal').style.display = 'none';
+        }
+
+        function startGameWithMode(mode) {
+            closeGameModes();
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
-                    type: 'startGame'
+                    type: 'startGame',
+                    gameMode: mode
                 }));
             }
         }
@@ -728,6 +966,7 @@
         function showLobbyView(lobby) {
             document.getElementById('mainMenu').classList.remove('active');
             document.getElementById('createLobby').classList.remove('active');
+            document.getElementById('gameView').classList.remove('active');
             document.getElementById('lobbyView').classList.add('active');
             updateLobbyView(lobby);
         }
@@ -740,12 +979,12 @@
 
             const codeDisplay = document.getElementById('lobbyCodeDisplay');
             if (lobby.isPrivate && lobby.code) {
-                codeDisplay.textContent = '🔑 Код лобби: ' + lobby.code;
-                codeDisplay.style.display = 'block';
-                document.getElementById('copyCodeBtn').style.display = 'inline-block';
+                codeDisplay.style.display = 'flex';
+                document.getElementById('codeValue').textContent = lobby.code;
+                codeVisible = true;
+                document.getElementById('hideCodeBtn').textContent = '👁️';
             } else {
                 codeDisplay.style.display = 'none';
-                document.getElementById('copyCodeBtn').style.display = 'none';
             }
 
             // Отображение игроков
@@ -771,6 +1010,7 @@
         // Показать главное меню
         function showMainMenu() {
             document.getElementById('lobbyView').classList.remove('active');
+            document.getElementById('gameView').classList.remove('active');
             document.getElementById('createLobby').classList.remove('active');
             document.getElementById('mainMenu').classList.add('active');
             refreshLobbies();
@@ -780,6 +1020,7 @@
         function showCreateLobby() {
             document.getElementById('mainMenu').classList.remove('active');
             document.getElementById('lobbyView').classList.remove('active');
+            document.getElementById('gameView').classList.remove('active');
             document.getElementById('createLobby').classList.add('active');
         }
 
@@ -788,21 +1029,141 @@
             document.getElementById('mainMenu').classList.add('active');
         }
 
+        // Переключение видимости кода
+        function toggleCodeVisibility() {
+            const codeElement = document.getElementById('codeValue');
+            const hideBtn = document.getElementById('hideCodeBtn');
+            
+            codeVisible = !codeVisible;
+            if (codeVisible) {
+                const lobby = getCurrentLobby();
+                if (lobby && lobby.code) {
+                    codeElement.textContent = lobby.code;
+                }
+                hideBtn.textContent = '👁️';
+            } else {
+                codeElement.textContent = '●●●●●●';
+                hideBtn.textContent = '🔒';
+            }
+        }
+
+        function getCurrentLobby() {
+            // Получаем текущее лобби из данных
+            return null; // В реальности нужно хранить данные лобби
+        }
+
         // Копирование кода
         function copyLobbyCode() {
-            const code = document.getElementById('lobbyCodeDisplay').textContent.replace('🔑 Код лобби: ', '');
-            navigator.clipboard.writeText(code).then(() => {
-                showNotification('Код скопирован!', 'success');
-            }).catch(() => {
-                // Fallback
-                const textarea = document.createElement('textarea');
-                textarea.value = code;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                showNotification('Код скопирован!', 'success');
+            const code = document.getElementById('codeValue').textContent;
+            if (code && code !== '●●●●●●') {
+                navigator.clipboard.writeText(code).then(() => {
+                    showNotification('Код скопирован!', 'success');
+                }).catch(() => {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = code;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    showNotification('Код скопирован!', 'success');
+                });
+            }
+        }
+
+        // Показать игровой экран
+        function showGameView(lobby, gameMode) {
+            document.getElementById('mainMenu').classList.remove('active');
+            document.getElementById('lobbyView').classList.remove('active');
+            document.getElementById('createLobby').classList.remove('active');
+            document.getElementById('gameView').classList.add('active');
+            
+            document.getElementById('gameTitle').textContent = `🎮 ${lobby.name}`;
+            document.getElementById('gameModeDisplay').textContent = `Режим: ${gameMode}`;
+            document.getElementById('gamePlayersCount').textContent = lobby.players.length;
+            document.getElementById('gameScore').textContent = '0';
+            document.getElementById('gameMoves').textContent = '0';
+            
+            generateGameBoard();
+        }
+
+        // Генерация игрового поля
+        function generateGameBoard() {
+            const board = document.getElementById('gameBoard');
+            const tiles = [];
+            const colors = ['0', '1', '2', '3', '4', '5', '6', '7'];
+            
+            // Создаем 8 пар (16 плиток)
+            for (let i = 0; i < 8; i++) {
+                tiles.push(colors[i], colors[i]);
+            }
+            
+            // Перемешиваем
+            for (let i = tiles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+            }
+            
+            board.innerHTML = '';
+            tiles.forEach((color, index) => {
+                const tile = document.createElement('button');
+                tile.className = `game-tile game-tile-${color}`;
+                tile.dataset.index = index;
+                tile.dataset.color = color;
+                tile.dataset.flipped = 'false';
+                tile.textContent = '?';
+                tile.onclick = () => flipTile(tile);
+                board.appendChild(tile);
             });
+        }
+
+        // Переворот плитки
+        let selectedTiles = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let score = 0;
+
+        function flipTile(tile) {
+            if (tile.dataset.flipped === 'true') return;
+            if (selectedTiles.length >= 2) return;
+            
+            tile.dataset.flipped = 'true';
+            tile.textContent = '';
+            selectedTiles.push(tile);
+            
+            if (selectedTiles.length === 2) {
+                moves++;
+                document.getElementById('gameMoves').textContent = moves;
+                
+                const [tile1, tile2] = selectedTiles;
+                if (tile1.dataset.color === tile2.dataset.color) {
+                    matchedPairs++;
+                    score += 10;
+                    document.getElementById('gameScore').textContent = score;
+                    selectedTiles = [];
+                    
+                    if (matchedPairs === 8) {
+                        setTimeout(() => {
+                            showNotification('🎉 Вы выиграли!', 'success');
+                        }, 500);
+                    }
+                } else {
+                    setTimeout(() => {
+                        tile1.dataset.flipped = 'false';
+                        tile1.textContent = '?';
+                        tile2.dataset.flipped = 'false';
+                        tile2.textContent = '?';
+                        selectedTiles = [];
+                    }, 1000);
+                }
+            }
+        }
+
+        // Выход из игры
+        function leaveGame() {
+            if (confirm('Вы уверены, что хотите выйти из игры?')) {
+                document.getElementById('gameView').classList.remove('active');
+                showMainMenu();
+            }
         }
 
         // Уведомления
@@ -827,6 +1188,15 @@
                 }));
             }
         }, 5000);
+
+        // Нажмите Enter для поиска
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchLobbies();
+        });
+
+        document.getElementById('joinCodeInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') joinByCode();
+        });
     </script>
 </body>
 </html>

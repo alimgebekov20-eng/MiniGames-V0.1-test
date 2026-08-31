@@ -266,10 +266,8 @@ wss.on('connection', (ws) => {
                                 broadcastLobbyUpdate(gameLobby.id);
                                 broadcastLobbies();
                                 
-                                // Отправляем состояние игры всем
                                 broadcastGameState(gameLobby.id);
                                 
-                                // Отправляем каждому игроку что игра началась
                                 wss.clients.forEach(client => {
                                     if (client.readyState === WebSocket.OPEN) {
                                         const playerId = Object.keys(players).find(id => players[id].socketId === client._socket.remoteAddress);

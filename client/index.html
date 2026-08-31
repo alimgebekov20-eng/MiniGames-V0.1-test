@@ -506,7 +506,6 @@
             background: #f8f9fa;
             border-radius: 10px;
             border: 2px dashed #ccc;
-            position: relative;
         }
 
         .color-block {
@@ -638,6 +637,7 @@
             padding: 10px;
             background: #f8f9fa;
             border-radius: 8px;
+            flex-wrap: wrap;
         }
 
         .remove-toggle .toggle-label {
@@ -702,6 +702,11 @@
             .result-row {
                 flex-direction: column;
                 align-items: center;
+            }
+
+            .remove-toggle {
+                flex-direction: column;
+                align-items: stretch;
             }
         }
     </style>
@@ -895,12 +900,7 @@
         let currentPage = 0;
         let currentSearchQuery = '';
         let codeVisible = true;
-        let currentSequence = [];
-        let currentGuess = [];
-        let isSettingPhase = false;
-        let isGuessingPhase = false;
         let gameState = null;
-        let removeMode = false;
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
@@ -918,7 +918,6 @@
                 while (!validName) {
                     playerName = prompt('Введите ваше имя (только английские буквы и цифры, минимум 3 символа):', '');
                     if (playerName === null) {
-                        // Если нажали Отмена, генерируем случайное имя
                         playerName = 'Player' + Math.floor(Math.random() * 10000);
                         validName = true;
                     } else if (playerName.trim().length >= 3 && /^[a-zA-Z0-9]+$/.test(playerName.trim())) {
@@ -1021,7 +1020,7 @@
                     break;
 
                 case 'gameState':
-                    handleGameState(data.state);
+                    updateGameView(data.state);
                     break;
 
                 case 'gameResult':
@@ -1041,30 +1040,8 @@
             }
         }
 
-        // Переключение режима убирания
-        function toggleRemoveMode() {
-            removeMode = !removeMode;
-            const statusEl = document.getElementById('removeModeStatus');
-            const indicatorEl = document.getElementById('removeModeIndicator');
-            const btnEl = document.getElementById('removeModeBtn');
-            
-            if (removeMode) {
-                statusEl.textContent = 'Вкл';
-                indicatorEl.textContent = 'Вкл';
-                indicatorEl.className = 'toggle-status on';
-                btnEl.style.background = '#fc8181';
-                document.getElementById('gameStatus').textContent = '🔧 Режим убирания включен - нажимайте на блоки чтобы убрать';
-            } else {
-                statusEl.textContent = 'Выкл';
-                indicatorEl.textContent = 'Выкл';
-                indicatorEl.className = 'toggle-status off';
-                btnEl.style.background = '#ed8936';
-                document.getElementById('gameStatus').textContent = '🎨 Выберите последовательность из 5 цветов';
-            }
-        }
-
-        // Обработка состояния игры
-        function handleGameState(state) {
+        // Обновление игрового вида
+        function updateGameView(state) {
             gameState = state;
             document.getElementById('setterName').textContent = state.currentSetter || '-';
             document.getElementById('guesserName').textContent = state.currentGuesser || '-';
@@ -1075,41 +1052,70 @@
             }
             
             if (state.isSetting) {
-                showSettingPhase();
+                showSettingPhase(state);
             } else if (state.isGuessing) {
-                showGuessingPhase();
+                showGuessingPhase(state);
             } else {
                 showSpectatorPhase();
             }
         }
 
-        function showSettingPhase() {
+        function showSettingPhase(state) {
             document.getElementById('settingPhase').style.display = 'block';
             document.getElementById('guessingPhase').style.display = 'none';
             document.getElementById('resultPhase').style.display = 'none';
             document.getElementById('gameStatus').textContent = '🎨 Выберите последовательность из 5 цветов';
-            isSettingPhase = true;
-            isGuessingPhase = false;
-            currentSequence = [];
-            updateSequenceDisplay();
-            document.getElementById('submitSequenceBtn').style.display = 'none';
-            removeMode = false;
-            document.getElementById('removeModeStatus').textContent = 'Выкл';
-            document.getElementById('removeModeIndicator').textContent = 'Выкл';
-            document.getElementById('removeModeIndicator').className = 'toggle-status off';
-            document.getElementById('removeModeBtn').style.background = '#ed8936';
+            
+            // Обновляем состояние кнопки
+            const statusEl = document.getElementById('removeModeStatus');
+            const indicatorEl = document.getElementById('removeModeIndicator');
+            const btnEl = document.getElementById('removeModeBtn');
+            
+            if (state.removeMode) {
+                statusEl.textContent = 'Вкл';
+                indicatorEl.textContent = 'Вкл';
+                indicatorEl.className = 'toggle-status on';
+                btnEl.style.background = '#fc8181';
+            } else {
+                statusEl.textContent = 'Выкл';
+                indicatorEl.textContent = 'Выкл';
+                indicatorEl.className = 'toggle-status off';
+                btnEl.style.background = '#ed8936';
+            }
+            
+            // Отображаем последовательность из сервера
+            const container = document.getElementById('sequenceDisplay');
+            const tempSeq = state.tempSequence || [];
+            if (tempSeq.length === 0) {
+                container.innerHTML = '<div style="color: #999; padding: 20px;">Нажмите на цвет, чтобы добавить</div>';
+            } else {
+                container.innerHTML = tempSeq.map((color, index) => `
+                    <div class="color-block" style="background: ${getColorValue(color)};" 
+                         onclick="removeColorFromSequence(${index})"></div>
+                `).join('');
+            }
+            
+            document.getElementById('submitSequenceBtn').style.display = tempSeq.length === 5 ? 'inline-block' : 'none';
         }
 
-        function showGuessingPhase() {
+        function showGuessingPhase(state) {
             document.getElementById('settingPhase').style.display = 'none';
             document.getElementById('guessingPhase').style.display = 'block';
             document.getElementById('resultPhase').style.display = 'none';
             document.getElementById('gameStatus').textContent = '🤔 Угадайте последовательность!';
-            isSettingPhase = false;
-            isGuessingPhase = true;
-            currentGuess = [];
-            updateGuessDisplay();
-            document.getElementById('submitGuessBtn').style.display = 'none';
+            
+            const container = document.getElementById('guessDisplay');
+            const tempGuess = state.tempGuess || [];
+            if (tempGuess.length === 0) {
+                container.innerHTML = '<div style="color: #999; padding: 20px;">Выберите 5 цветов</div>';
+            } else {
+                container.innerHTML = tempGuess.map((color, index) => `
+                    <div class="color-block" style="background: ${getColorValue(color)};" 
+                         onclick="removeColorFromGuess(${index})"></div>
+                `).join('');
+            }
+            
+            document.getElementById('submitGuessBtn').style.display = tempGuess.length === 5 ? 'inline-block' : 'none';
         }
 
         function showSpectatorPhase() {
@@ -1117,81 +1123,67 @@
             document.getElementById('guessingPhase').style.display = 'none';
             document.getElementById('resultPhase').style.display = 'none';
             document.getElementById('gameStatus').textContent = '👀 Наблюдайте за игрой...';
-            isSettingPhase = false;
-            isGuessingPhase = false;
+        }
+
+        // Действия клиента
+        function toggleRemoveMode() {
+            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                ws.send(JSON.stringify({
+                    type: 'toggleRemoveMode'
+                }));
+            }
         }
 
         function addColorToSequence(color) {
-            if (!isSettingPhase) return;
-            if (removeMode) {
-                // Если режим убирания включен, пытаемся убрать последний блок
-                if (currentSequence.length > 0) {
-                    currentSequence.pop();
-                    updateSequenceDisplay();
-                    document.getElementById('submitSequenceBtn').style.display = currentSequence.length === 5 ? 'inline-block' : 'none';
-                    showNotification('Блок убран!', 'info');
-                } else {
-                    showNotification('Нет блоков для убирания', 'error');
-                }
-                return;
+            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                ws.send(JSON.stringify({
+                    type: 'addColorToSequence',
+                    color: color
+                }));
             }
-            
-            if (currentSequence.length >= 5) {
-                showNotification('Максимум 5 блоков!', 'error');
-                return;
-            }
-            currentSequence.push(color);
-            updateSequenceDisplay();
-            document.getElementById('submitSequenceBtn').style.display = currentSequence.length === 5 ? 'inline-block' : 'none';
         }
 
         function removeColorFromSequence(index) {
-            if (!isSettingPhase) return;
-            if (index >= 0 && index < currentSequence.length) {
-                currentSequence.splice(index, 1);
-                updateSequenceDisplay();
-                document.getElementById('submitSequenceBtn').style.display = currentSequence.length === 5 ? 'inline-block' : 'none';
+            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                ws.send(JSON.stringify({
+                    type: 'removeColorFromSequence',
+                    index: index
+                }));
             }
         }
 
-        function updateSequenceDisplay() {
-            const container = document.getElementById('sequenceDisplay');
-            if (currentSequence.length === 0) {
-                container.innerHTML = '<div style="color: #999; padding: 20px;">Нажмите на цвет, чтобы добавить</div>';
-                return;
+        function submitSequence() {
+            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                ws.send(JSON.stringify({
+                    type: 'submitSequence'
+                }));
             }
-            container.innerHTML = currentSequence.map((color, index) => `
-                <div class="color-block" style="background: ${getColorValue(color)};" 
-                     onclick="event.stopPropagation(); if(!removeMode) removeColorFromSequence(${index})"></div>
-            `).join('');
         }
 
         function addColorToGuess(color) {
-            if (!isGuessingPhase || currentGuess.length >= 5) return;
-            currentGuess.push(color);
-            updateGuessDisplay();
-            document.getElementById('submitGuessBtn').style.display = currentGuess.length === 5 ? 'inline-block' : 'none';
+            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                ws.send(JSON.stringify({
+                    type: 'addColorToGuess',
+                    color: color
+                }));
+            }
         }
 
         function removeColorFromGuess(index) {
-            if (!isGuessingPhase) return;
-            if (index >= 0 && index < currentGuess.length) {
-                currentGuess.splice(index, 1);
-                updateGuessDisplay();
-                document.getElementById('submitGuessBtn').style.display = currentGuess.length === 5 ? 'inline-block' : 'none';
+            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                ws.send(JSON.stringify({
+                    type: 'removeColorFromGuess',
+                    index: index
+                }));
             }
         }
 
-        function updateGuessDisplay() {
-            const container = document.getElementById('guessDisplay');
-            if (currentGuess.length === 0) {
-                container.innerHTML = '<div style="color: #999; padding: 20px;">Выберите 5 цветов</div>';
-                return;
+        function submitGuess() {
+            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                ws.send(JSON.stringify({
+                    type: 'submitGuess'
+                }));
             }
-            container.innerHTML = currentGuess.map((color, index) => `
-                <div class="color-block" style="background: ${getColorValue(color)};" 
-                     onclick="event.stopPropagation(); removeColorFromGuess(${index})"></div>
-            `).join('');
         }
 
         function getColorValue(color) {
@@ -1204,26 +1196,6 @@
                 'brown': '#8B4513'
             };
             return colors[color] || '#ccc';
-        }
-
-        function submitSequence() {
-            if (currentSequence.length !== 5) return;
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'setSequence',
-                    sequence: currentSequence
-                }));
-            }
-        }
-
-        function submitGuess() {
-            if (currentGuess.length !== 5) return;
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'makeGuess',
-                    guess: currentGuess
-                }));
-            }
         }
 
         function handleGameResult(data) {

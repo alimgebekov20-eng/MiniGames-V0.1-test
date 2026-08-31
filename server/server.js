@@ -36,6 +36,7 @@ class Lobby {
         this.isGameStarted = false;
         this.createdAt = Date.now();
         this.popularity = 0;
+        this.gameMode = null;
     }
 
     addPlayer(player) {
@@ -51,17 +52,16 @@ class Lobby {
         this.players = this.players.filter(p => p.id !== playerId);
         this.popularity = Math.max(0, this.popularity - 1);
         if (this.players.length === 0) {
-            return true; // Лобби пустое, можно удалить
+            return true;
         }
         if (this.creatorId === playerId && this.players.length > 0) {
-            // Передаем права создателя следующему игроку
             this.creatorId = this.players[0].id;
         }
         return false;
     }
 
-    getInfo() {
-        return {
+    getInfo(forPlayerId = null) {
+        const info = {
             id: this.id,
             name: this.name,
             maxPlayers: this.maxPlayers,
@@ -70,8 +70,15 @@ class Lobby {
             isGameStarted: this.isGameStarted,
             creatorId: this.creatorId,
             players: this.players.map(p => ({ id: p.id, name: p.name, isCreator: p.id === this.creatorId })),
-            code: this.code
+            gameMode: this.gameMode
         };
+        
+        // Показываем код только создателю и игрокам в лобби
+        if (forPlayerId && this.players.some(p => p.id === forPlayerId)) {
+            info.code = this.code;
+        }
+        
+        return info;
     }
 }
 
@@ -111,12 +118,11 @@ wss.on('connection', (ws) => {
                     player.currentLobbyId = newLobby.id;
                     lobbies.push(newLobby);
                     
-                    // Отправляем всем обновленный список лобби
                     broadcastLobbies();
                     
                     ws.send(JSON.stringify({
                         type: 'lobbyCreated',
-                        lobby: newLobby.getInfo()
+                        lobby: newLobby.getInfo(player.id)
                     }));
                     break;
 
@@ -125,7 +131,6 @@ wss.on('connection', (ws) => {
                     const lobby = lobbies.find(l => l.id === lobbyId);
                     if (lobby && !lobby.isGameStarted) {
                         if (lobby.players.length < lobby.maxPlayers) {
-                            // Проверка на закрытое лобби
                             if (lobby.isPrivate && data.code !== lobby.code) {
                                 ws.send(JSON.stringify({
                                     type: 'error',
@@ -136,13 +141,12 @@ wss.on('connection', (ws) => {
                             lobby.addPlayer(player);
                             player.currentLobbyId = lobby.id;
                             
-                            // Обновляем всех в лобби
                             broadcastLobbyUpdate(lobby.id);
                             broadcastLobbies();
                             
                             ws.send(JSON.stringify({
                                 type: 'lobbyJoined',
-                                lobby: lobby.getInfo()
+                                lobby: lobby.getInfo(player.id)
                             }));
                         } else {
                             ws.send(JSON.stringify({
@@ -154,6 +158,33 @@ wss.on('connection', (ws) => {
                         ws.send(JSON.stringify({
                             type: 'error',
                             message: 'Лобби не найдено или игра уже началась'
+                        }));
+                    }
+                    break;
+
+                case 'joinByCode':
+                    const code = data.code.toUpperCase();
+                    const foundLobby = lobbies.find(l => l.isPrivate && l.code === code && !l.isGameStarted);
+                    if (foundLobby) {
+                        if (foundLobby.players.length < foundLobby.maxPlayers) {
+                            foundLobby.addPlayer(player);
+                            player.currentLobbyId = foundLobby.id;
+                            broadcastLobbyUpdate(foundLobby.id);
+                            broadcastLobbies();
+                            ws.send(JSON.stringify({
+                                type: 'lobbyJoined',
+                                lobby: foundLobby.getInfo(player.id)
+                            }));
+                        } else {
+                            ws.send(JSON.stringify({
+                                type: 'error',
+                                message: 'Лобби заполнено'
+                            }));
+                        }
+                    } else {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Неверный код или лобби не найдено'
                         }));
                     }
                     break;
@@ -184,12 +215,14 @@ wss.on('connection', (ws) => {
                         if (gameLobby && gameLobby.creatorId === player.id) {
                             if (gameLobby.players.length >= 2) {
                                 gameLobby.isGameStarted = true;
+                                gameLobby.gameMode = data.gameMode || 'Угадай последовательность';
                                 broadcastLobbyUpdate(gameLobby.id);
                                 broadcastLobbies();
                                 
                                 ws.send(JSON.stringify({
                                     type: 'gameStarted',
-                                    lobby: gameLobby.getInfo()
+                                    lobby: gameLobby.getInfo(player.id),
+                                    gameMode: gameLobby.gameMode
                                 }));
                             } else {
                                 ws.send(JSON.stringify({
@@ -221,7 +254,20 @@ wss.on('connection', (ws) => {
                         if (currentLobby) {
                             ws.send(JSON.stringify({
                                 type: 'lobbyInfo',
-                                lobby: currentLobby.getInfo()
+                                lobby: currentLobby.getInfo(player.id)
+                            }));
+                        }
+                    }
+                    break;
+
+                case 'toggleCodeVisibility':
+                    if (player && player.currentLobbyId) {
+                        const lobby = lobbies.find(l => l.id === player.currentLobbyId);
+                        if (lobby && lobby.creatorId === player.id) {
+                            // Просто отправляем обновленную информацию
+                            ws.send(JSON.stringify({
+                                type: 'lobbyInfo',
+                                lobby: lobby.getInfo(player.id)
                             }));
                         }
                     }
@@ -287,13 +333,18 @@ function broadcastLobbies() {
 function broadcastLobbyUpdate(lobbyId) {
     const lobby = lobbies.find(l => l.id === lobbyId);
     if (lobby) {
-        const lobbyInfo = lobby.getInfo();
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                    type: 'lobbyUpdate',
-                    lobby: lobbyInfo
-                }));
+                // Отправляем каждому клиенту его версию лобби (с кодом или без)
+                const playerId = Object.keys(players).find(id => players[id].socketId === client._socket.remoteAddress);
+                if (playerId) {
+                    const player = players[playerId];
+                    const isInLobby = player && player.currentLobbyId === lobbyId;
+                    client.send(JSON.stringify({
+                        type: 'lobbyUpdate',
+                        lobby: lobby.getInfo(isInLobby ? parseInt(playerId) : null)
+                    }));
+                }
             }
         });
     }
@@ -316,9 +367,6 @@ app.get('/api/lobbies/search', (req, res) => {
     });
 });
 
-// Добавьте в server.js после других app.get
-
-// Health check для Render
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'ok', 
@@ -328,16 +376,6 @@ app.get('/health', (req, res) => {
         playersCount: Object.keys(players).length
     });
 });
-
-// Авто-пинг каждые 10 минут, чтобы сервер не засыпал
-setInterval(() => {
-    // Пинг самого себя
-    const url = `http://localhost:${PORT}/health`;
-    fetch(url)
-        .then(res => res.json())
-        .then(data => console.log('✅ Self-ping успешен'))
-        .catch(err => console.log('⚠️ Self-ping ошибка:', err.message));
-}, 10 * 60 * 1000); // Каждые 10 минут
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

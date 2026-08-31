@@ -43,6 +43,8 @@
             margin-bottom: 30px;
             padding-bottom: 20px;
             border-bottom: 2px solid #f0f0f0;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .header h1 {
@@ -66,6 +68,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
         }
 
         .search-bar input {
@@ -75,6 +78,7 @@
             border-radius: 8px;
             font-size: 16px;
             transition: border-color 0.3s;
+            min-width: 150px;
         }
 
         .search-bar input:focus {
@@ -224,6 +228,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .lobby-view .players-grid {
@@ -272,6 +278,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         .code-display .code-value {
@@ -412,74 +419,140 @@
             margin-top: 5px;
         }
 
-        .game-board {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            max-width: 500px;
-            margin: 30px auto;
-            padding: 20px;
-        }
-
-        .game-tile {
-            aspect-ratio: 1;
-            border-radius: 15px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 24px;
-            color: white;
+        .game-status {
+            font-size: 20px;
+            margin-top: 10px;
+            color: #667eea;
             font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
-        .game-tile:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        .game-players {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
         }
 
-        .game-tile:active {
+        .game-players .player-roles {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .role-display {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid #667eea;
+            background: white;
+        }
+
+        .role-display.setter {
+            border-color: #667eea;
+        }
+
+        .role-display.guesser {
+            border-color: #48bb78;
+        }
+
+        .role-display .role-label {
+            font-weight: bold;
+        }
+
+        .color-palette {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .color-btn {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .color-btn:active {
             transform: scale(0.95);
         }
 
-        .game-tile-0 { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .game-tile-1 { background: linear-gradient(135deg, #f093fb, #f5576c); }
-        .game-tile-2 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-        .game-tile-3 { background: linear-gradient(135deg, #43e97b, #38f9d7); }
-        .game-tile-4 { background: linear-gradient(135deg, #fa709a, #fee140); }
-        .game-tile-5 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
-        .game-tile-6 { background: linear-gradient(135deg, #fbc2eb, #a6c1ee); }
-        .game-tile-7 { background: linear-gradient(135deg, #84fab0, #8fd3f4); }
-
-        .game-tile.flipped {
-            transform: rotateY(180deg);
-        }
-
-        .game-stats {
+        .sequence-container {
             display: flex;
             justify-content: center;
-            gap: 40px;
+            gap: 15px;
             margin: 20px 0;
-            padding: 20px;
+            min-height: 70px;
+            flex-wrap: wrap;
+            padding: 10px;
             background: #f8f9fa;
             border-radius: 10px;
+            border: 2px dashed #ccc;
         }
 
-        .game-stats .stat {
-            text-align: center;
+        .color-block {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            border: 3px solid #333;
+            cursor: pointer;
+            transition: all 0.3s;
         }
 
-        .game-stats .stat-value {
-            font-size: 28px;
+        .color-block:hover {
+            transform: scale(1.1);
+        }
+
+        .color-block.correct {
+            border-color: #2ecc71;
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+        }
+
+        .color-block.wrong {
+            border-color: #e74c3c;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+        }
+
+        .color-block.wrong-position {
+            border-color: #f1c40f;
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+
+        .result-label {
             font-weight: bold;
-            color: #667eea;
+            color: #333;
+            min-width: 100px;
         }
 
-        .game-stats .stat-label {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
+        .winner-text {
+            font-size: 36px;
+            color: #f1c40f;
+            text-shadow: 0 0 30px rgba(241, 196, 15, 0.5);
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
         .join-by-code {
@@ -511,6 +584,40 @@
             border-color: #667eea;
         }
 
+        .game-mode-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-mode-modal.active {
+            display: flex;
+        }
+
+        .game-mode-modal .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .game-mode-modal .modal-content h2 {
+            margin-bottom: 20px;
+        }
+
+        .game-mode-modal .modal-content .mode-btn {
+            width: 100%;
+            margin: 5px 0;
+        }
+
         @media (max-width: 768px) {
             .lobby-grid {
                 grid-template-columns: 1fr;
@@ -519,7 +626,6 @@
             .header {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 15px;
             }
             
             .search-bar {
@@ -530,24 +636,35 @@
                 flex-direction: column;
             }
 
-            .game-board {
-                grid-template-columns: repeat(2, 1fr);
-                max-width: 300px;
+            .game-players .player-roles {
+                flex-direction: column;
+                align-items: center;
             }
 
-            .game-stats {
-                flex-direction: column;
-                gap: 15px;
+            .color-palette {
+                gap: 10px;
             }
 
-            .join-by-code {
+            .color-btn {
+                width: 50px;
+                height: 50px;
+            }
+
+            .color-block {
+                width: 50px;
+                height: 50px;
+            }
+
+            .result-row {
                 flex-direction: column;
+                align-items: center;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Главное меню -->
         <div id="mainMenu" class="main-menu active">
             <div class="header">
                 <h1>🎮 Поиск лобби</h1>
@@ -575,15 +692,12 @@
             </div>
 
             <div id="lobbyList">
-                <div class="lobby-grid" id="lobbyGrid">
-                    <!-- Лобби будут загружены сюда -->
-                </div>
-                <div class="pagination" id="pagination">
-                    <!-- Пагинация -->
-                </div>
+                <div class="lobby-grid" id="lobbyGrid"></div>
+                <div class="pagination" id="pagination"></div>
             </div>
         </div>
 
+        <!-- Создание лобби -->
         <div id="createLobby" class="create-lobby">
             <div class="header">
                 <h1>Создание лобби</h1>
@@ -604,6 +718,7 @@
             <button onclick="createLobby()" class="btn btn-primary">Создать</button>
         </div>
 
+        <!-- Просмотр лобби -->
         <div id="lobbyView" class="lobby-view">
             <div class="lobby-header">
                 <div>
@@ -620,9 +735,7 @@
 
             <div>
                 <h3>Игроки (<span id="playerCount">0</span>/<span id="maxPlayerCount">0</span>)</h3>
-                <div class="players-grid" id="playersGrid">
-                    <!-- Игроки будут загружены сюда -->
-                </div>
+                <div class="players-grid" id="playersGrid"></div>
             </div>
 
             <div class="lobby-actions-bar">
@@ -630,29 +743,74 @@
             </div>
         </div>
 
+        <!-- Игровой экран -->
         <div id="gameView" class="game-view">
             <div class="game-header">
-                <h1 id="gameTitle">🎮 Игра началась!</h1>
+                <h1 id="gameTitle">🎮 Угадай последовательность</h1>
                 <div class="game-mode" id="gameModeDisplay">Режим: Угадай последовательность</div>
+                <div class="game-status" id="gameStatus"></div>
             </div>
 
-            <div class="game-stats">
-                <div class="stat">
-                    <div class="stat-value" id="gamePlayersCount">2</div>
-                    <div class="stat-label">👥 Игроков</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="gameScore">0</div>
-                    <div class="stat-label">⭐ Очки</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="gameMoves">0</div>
-                    <div class="stat-label">🔄 Ходов</div>
+            <div class="game-players">
+                <div class="player-roles">
+                    <div class="role-display setter">
+                        <span class="role-label">Загадывает:</span> <span id="setterName">-</span>
+                    </div>
+                    <div class="role-display guesser">
+                        <span class="role-label">Угадывает:</span> <span id="guesserName">-</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="game-board" id="gameBoard">
-                <!-- Игровые плитки будут сгенерированы здесь -->
+            <!-- Фаза загадывания -->
+            <div id="settingPhase" style="display: none;">
+                <div style="text-align: center; margin: 20px 0;">
+                    <h3>Выберите 5 цветов в правильной последовательности</h3>
+                    <p style="color: #666;">Нажмите на цвет, чтобы добавить его. Нажмите на блок, чтобы убрать.</p>
+                </div>
+                
+                <div class="color-palette">
+                    <button class="color-btn" style="background: #4a90d9;" onclick="addColorToSequence('blue')"></button>
+                    <button class="color-btn" style="background: #e74c3c;" onclick="addColorToSequence('red')"></button>
+                    <button class="color-btn" style="background: #2ecc71;" onclick="addColorToSequence('green')"></button>
+                    <button class="color-btn" style="background: #f1c40f;" onclick="addColorToSequence('yellow')"></button>
+                    <button class="color-btn" style="background: #9b59b6;" onclick="addColorToSequence('purple')"></button>
+                    <button class="color-btn" style="background: #8B4513;" onclick="addColorToSequence('brown')"></button>
+                </div>
+
+                <div class="sequence-container" id="sequenceDisplay"></div>
+
+                <div style="text-align: center;">
+                    <button onclick="submitSequence()" class="btn btn-success" id="submitSequenceBtn" style="display: none;">✅ Подтвердить</button>
+                </div>
+            </div>
+
+            <!-- Фаза угадывания -->
+            <div id="guessingPhase" style="display: none;">
+                <div style="text-align: center; margin: 20px 0;">
+                    <h3>Угадайте последовательность!</h3>
+                    <p style="color: #666;">Выберите 5 цветов в правильном порядке</p>
+                </div>
+
+                <div class="color-palette">
+                    <button class="color-btn" style="background: #4a90d9;" onclick="addColorToGuess('blue')"></button>
+                    <button class="color-btn" style="background: #e74c3c;" onclick="addColorToGuess('red')"></button>
+                    <button class="color-btn" style="background: #2ecc71;" onclick="addColorToGuess('green')"></button>
+                    <button class="color-btn" style="background: #f1c40f;" onclick="addColorToGuess('yellow')"></button>
+                    <button class="color-btn" style="background: #9b59b6;" onclick="addColorToGuess('purple')"></button>
+                    <button class="color-btn" style="background: #8B4513;" onclick="addColorToGuess('brown')"></button>
+                </div>
+
+                <div class="sequence-container" id="guessDisplay"></div>
+
+                <div style="text-align: center;">
+                    <button onclick="submitGuess()" class="btn btn-primary" id="submitGuessBtn" style="display: none;">🎯 Угадать!</button>
+                </div>
+            </div>
+
+            <!-- Результаты -->
+            <div id="resultPhase" style="display: none;">
+                <div id="resultDisplay" style="text-align: center; margin: 30px 0; padding: 30px; background: #f8f9fa; border-radius: 15px;"></div>
             </div>
 
             <div style="text-align: center; margin-top: 20px;">
@@ -662,15 +820,13 @@
     </div>
 
     <!-- Модальное окно выбора режима -->
-    <div id="gameModeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-        <div style="background:white; padding:30px; border-radius:15px; max-width:400px; width:90%;">
-            <h2 style="margin-bottom:20px;">Выберите режим игры</h2>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <button onclick="startGameWithMode('Угадай последовательность')" class="btn btn-primary" style="width:100%;">
-                    🎯 Угадай последовательность
-                </button>
-            </div>
-            <button onclick="closeGameModes()" class="btn btn-secondary" style="width:100%; margin-top:15px;">Отмена</button>
+    <div class="game-mode-modal" id="gameModeModal">
+        <div class="modal-content">
+            <h2>Выберите режим игры</h2>
+            <button onclick="startGameWithMode('Угадай последовательность')" class="btn btn-primary mode-btn">
+                🎯 Угадай последовательность
+            </button>
+            <button onclick="closeGameModes()" class="btn btn-secondary mode-btn" style="margin-top: 10px;">Отмена</button>
         </div>
     </div>
 
@@ -687,6 +843,10 @@
         let currentPage = 0;
         let currentSearchQuery = '';
         let codeVisible = true;
+        let currentSequence = [];
+        let currentGuess = [];
+        let isSettingPhase = false;
+        let isGuessingPhase = false;
         let gameState = null;
 
         // Инициализация
@@ -765,8 +925,16 @@
                     break;
 
                 case 'gameStarted':
-                    showGameView(data.lobby, data.gameMode);
+                    showGameView();
                     showNotification('Игра началась! 🎮', 'success');
+                    break;
+
+                case 'gameState':
+                    handleGameState(data.state);
+                    break;
+
+                case 'gameResult':
+                    handleGameResult(data);
                     break;
 
                 case 'searchResults':
@@ -780,6 +948,195 @@
                 default:
                     console.log('Неизвестный тип сообщения:', data);
             }
+        }
+
+        // Обработка состояния игры
+        function handleGameState(state) {
+            gameState = state;
+            document.getElementById('setterName').textContent = state.currentSetter || '-';
+            document.getElementById('guesserName').textContent = state.currentGuesser || '-';
+            
+            if (state.gameOver) {
+                showGameResult(state.winner);
+                return;
+            }
+            
+            if (state.isSetting) {
+                showSettingPhase();
+            } else if (state.isGuessing) {
+                showGuessingPhase();
+            } else {
+                showSpectatorPhase();
+            }
+        }
+
+        function showSettingPhase() {
+            document.getElementById('settingPhase').style.display = 'block';
+            document.getElementById('guessingPhase').style.display = 'none';
+            document.getElementById('resultPhase').style.display = 'none';
+            document.getElementById('gameStatus').textContent = '🎨 Выберите последовательность из 5 цветов';
+            isSettingPhase = true;
+            isGuessingPhase = false;
+            currentSequence = [];
+            updateSequenceDisplay();
+            document.getElementById('submitSequenceBtn').style.display = 'none';
+        }
+
+        function showGuessingPhase() {
+            document.getElementById('settingPhase').style.display = 'none';
+            document.getElementById('guessingPhase').style.display = 'block';
+            document.getElementById('resultPhase').style.display = 'none';
+            document.getElementById('gameStatus').textContent = '🤔 Угадайте последовательность!';
+            isSettingPhase = false;
+            isGuessingPhase = true;
+            currentGuess = [];
+            updateGuessDisplay();
+            document.getElementById('submitGuessBtn').style.display = 'none';
+        }
+
+        function showSpectatorPhase() {
+            document.getElementById('settingPhase').style.display = 'none';
+            document.getElementById('guessingPhase').style.display = 'none';
+            document.getElementById('resultPhase').style.display = 'none';
+            document.getElementById('gameStatus').textContent = '👀 Наблюдайте за игрой...';
+            isSettingPhase = false;
+            isGuessingPhase = false;
+        }
+
+        function addColorToSequence(color) {
+            if (!isSettingPhase || currentSequence.length >= 5) return;
+            currentSequence.push(color);
+            updateSequenceDisplay();
+            document.getElementById('submitSequenceBtn').style.display = currentSequence.length === 5 ? 'inline-block' : 'none';
+        }
+
+        function removeColorFromSequence(index) {
+            if (!isSettingPhase) return;
+            currentSequence.splice(index, 1);
+            updateSequenceDisplay();
+            document.getElementById('submitSequenceBtn').style.display = currentSequence.length === 5 ? 'inline-block' : 'none';
+        }
+
+        function updateSequenceDisplay() {
+            const container = document.getElementById('sequenceDisplay');
+            if (currentSequence.length === 0) {
+                container.innerHTML = '<div style="color: #999; padding: 20px;">Нажмите на цвет, чтобы добавить</div>';
+                return;
+            }
+            container.innerHTML = currentSequence.map((color, index) => `
+                <div class="color-block" style="background: ${getColorValue(color)};" onclick="removeColorFromSequence(${index})"></div>
+            `).join('');
+        }
+
+        function addColorToGuess(color) {
+            if (!isGuessingPhase || currentGuess.length >= 5) return;
+            currentGuess.push(color);
+            updateGuessDisplay();
+            document.getElementById('submitGuessBtn').style.display = currentGuess.length === 5 ? 'inline-block' : 'none';
+        }
+
+        function removeColorFromGuess(index) {
+            if (!isGuessingPhase) return;
+            currentGuess.splice(index, 1);
+            updateGuessDisplay();
+            document.getElementById('submitGuessBtn').style.display = currentGuess.length === 5 ? 'inline-block' : 'none';
+        }
+
+        function updateGuessDisplay() {
+            const container = document.getElementById('guessDisplay');
+            if (currentGuess.length === 0) {
+                container.innerHTML = '<div style="color: #999; padding: 20px;">Выберите 5 цветов</div>';
+                return;
+            }
+            container.innerHTML = currentGuess.map((color, index) => `
+                <div class="color-block" style="background: ${getColorValue(color)};" onclick="removeColorFromGuess(${index})"></div>
+            `).join('');
+        }
+
+        function getColorValue(color) {
+            const colors = {
+                'blue': '#4a90d9',
+                'red': '#e74c3c',
+                'green': '#2ecc71',
+                'yellow': '#f1c40f',
+                'purple': '#9b59b6',
+                'brown': '#8B4513'
+            };
+            return colors[color] || '#ccc';
+        }
+
+        function submitSequence() {
+            if (currentSequence.length !== 5) return;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'setSequence',
+                    sequence: currentSequence
+                }));
+            }
+        }
+
+        function submitGuess() {
+            if (currentGuess.length !== 5) return;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'makeGuess',
+                    guess: currentGuess
+                }));
+            }
+        }
+
+        function handleGameResult(data) {
+            const container = document.getElementById('resultDisplay');
+            const guessColors = data.result.guess.map(color => getColorValue(color));
+            const correct = data.result.correct;
+            const wrongPosition = data.result.wrongPosition;
+            
+            let resultHTML = `
+                <div class="result-row">
+                    <span class="result-label">Ваша попытка:</span>
+                    ${guessColors.map(color => `<div class="color-block" style="background: ${color};"></div>`).join('')}
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Правильно на месте:</span>
+                    <span style="font-size: 24px; font-weight: bold; color: #2ecc71;">${'✅'.repeat(correct)}</span>
+                    <span style="font-size: 18px;">(${correct}/5)</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Правильно не на месте:</span>
+                    <span style="font-size: 24px; font-weight: bold; color: #f1c40f;">${'🟡'.repeat(wrongPosition)}</span>
+                    <span style="font-size: 18px;">(${wrongPosition})</span>
+                </div>
+            `;
+            
+            if (data.isWin) {
+                const winnerName = document.getElementById('playerName').textContent;
+                resultHTML += `
+                    <div style="margin-top: 20px; padding: 20px; background: #d4edda; border-radius: 10px;">
+                        <span style="font-size: 28px; font-weight: bold; color: #155724;">🎉 ${winnerName} ПОБЕДИЛ!</span>
+                    </div>
+                    <div style="margin-top: 10px; color: #666;">Возвращение в лобби через 5 секунд...</div>
+                `;
+            }
+            
+            container.innerHTML = resultHTML;
+            document.getElementById('resultPhase').style.display = 'block';
+            document.getElementById('gameStatus').textContent = data.isWin ? '🎉 Поздравляем!' : 'Попробуйте еще раз!';
+        }
+
+        function showGameResult(winnerId) {
+            document.getElementById('settingPhase').style.display = 'none';
+            document.getElementById('guessingPhase').style.display = 'none';
+            document.getElementById('resultPhase').style.display = 'block';
+            document.getElementById('gameStatus').textContent = '🏆 Игра завершена!';
+            
+            const container = document.getElementById('resultDisplay');
+            // Ищем победителя среди игроков
+            let winnerName = 'Игрок';
+            // В реальности нужно получить имя победителя с сервера
+            container.innerHTML = `
+                <div class="winner-text">🎉 Победитель найден!</div>
+                <p style="font-size: 18px; margin-top: 20px;">Возвращение в лобби через 5 секунд...</p>
+            `;
         }
 
         // Отображение лобби
@@ -802,7 +1159,6 @@
             `).join('');
         }
 
-        // Отображение результатов поиска
         function renderSearchResults(data) {
             const grid = document.getElementById('lobbyGrid');
             if (!data.lobbies || data.lobbies.length === 0) {
@@ -828,7 +1184,6 @@
             }
         }
 
-        // Поиск лобби
         function searchLobbies() {
             const query = document.getElementById('searchInput').value;
             currentSearchQuery = query;
@@ -860,7 +1215,6 @@
             }
         }
 
-        // Вход по коду
         function joinByCode() {
             const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
             if (!code) {
@@ -877,36 +1231,18 @@
             }
         }
 
-        // Присоединение к лобби
         function joinLobby(lobbyId) {
             if (!ws || ws.readyState !== WebSocket.OPEN) {
                 showNotification('Нет соединения с сервером', 'error');
                 return;
             }
 
-            // Проверяем, есть ли код в карточке
-            const lobbyCard = document.querySelector(`[onclick="joinLobby(${lobbyId})"]`);
-            if (lobbyCard) {
-                const codeElement = lobbyCard.querySelector('.lobby-info:last-child');
-                if (codeElement && codeElement.textContent.includes('Код:')) {
-                    const code = prompt('Введите код доступа:');
-                    if (!code) return;
-                    ws.send(JSON.stringify({
-                        type: 'joinLobby',
-                        lobbyId: lobbyId,
-                        code: code.toUpperCase()
-                    }));
-                    return;
-                }
-            }
-            
             ws.send(JSON.stringify({
                 type: 'joinLobby',
                 lobbyId: lobbyId
             }));
         }
 
-        // Создание лобби
         function createLobby() {
             const name = document.getElementById('lobbyNameInput').value.trim();
             const maxPlayers = document.getElementById('maxPlayersInput').value;
@@ -932,7 +1268,6 @@
             hideCreateLobby();
         }
 
-        // Выход из лобби
         function leaveLobby() {
             if (confirm('Вы уверены, что хотите выйти из лобби?')) {
                 if (ws && ws.readyState === WebSocket.OPEN) {
@@ -943,13 +1278,12 @@
             }
         }
 
-        // Показать выбор режимов игры
         function showGameModes() {
-            document.getElementById('gameModeModal').style.display = 'flex';
+            document.getElementById('gameModeModal').classList.add('active');
         }
 
         function closeGameModes() {
-            document.getElementById('gameModeModal').style.display = 'none';
+            document.getElementById('gameModeModal').classList.remove('active');
         }
 
         function startGameWithMode(mode) {
@@ -962,7 +1296,6 @@
             }
         }
 
-        // Показать лобби
         function showLobbyView(lobby) {
             document.getElementById('mainMenu').classList.remove('active');
             document.getElementById('createLobby').classList.remove('active');
@@ -971,7 +1304,6 @@
             updateLobbyView(lobby);
         }
 
-        // Обновить лобби
         function updateLobbyView(lobby) {
             document.getElementById('lobbyTitle').textContent = lobby.name;
             document.getElementById('playerCount').textContent = lobby.currentPlayers;
@@ -987,7 +1319,6 @@
                 codeDisplay.style.display = 'none';
             }
 
-            // Отображение игроков
             const grid = document.getElementById('playersGrid');
             grid.innerHTML = lobby.players.map(player => `
                 <div class="player-card">
@@ -996,7 +1327,6 @@
                 </div>
             `).join('');
 
-            // Кнопка начала игры (только для создателя)
             const startBtn = document.getElementById('startGameBtn');
             if (lobby.creatorId === currentPlayerId && lobby.currentPlayers >= 2) {
                 startBtn.style.display = 'inline-block';
@@ -1007,7 +1337,6 @@
             }
         }
 
-        // Показать главное меню
         function showMainMenu() {
             document.getElementById('lobbyView').classList.remove('active');
             document.getElementById('gameView').classList.remove('active');
@@ -1016,7 +1345,6 @@
             refreshLobbies();
         }
 
-        // Показать создание лобби
         function showCreateLobby() {
             document.getElementById('mainMenu').classList.remove('active');
             document.getElementById('lobbyView').classList.remove('active');
@@ -1029,17 +1357,13 @@
             document.getElementById('mainMenu').classList.add('active');
         }
 
-        // Переключение видимости кода
         function toggleCodeVisibility() {
             const codeElement = document.getElementById('codeValue');
             const hideBtn = document.getElementById('hideCodeBtn');
             
             codeVisible = !codeVisible;
             if (codeVisible) {
-                const lobby = getCurrentLobby();
-                if (lobby && lobby.code) {
-                    codeElement.textContent = lobby.code;
-                }
+                codeElement.textContent = gameState ? gameState.code : '------';
                 hideBtn.textContent = '👁️';
             } else {
                 codeElement.textContent = '●●●●●●';
@@ -1047,12 +1371,6 @@
             }
         }
 
-        function getCurrentLobby() {
-            // Получаем текущее лобби из данных
-            return null; // В реальности нужно хранить данные лобби
-        }
-
-        // Копирование кода
         function copyLobbyCode() {
             const code = document.getElementById('codeValue').textContent;
             if (code && code !== '●●●●●●') {
@@ -1070,95 +1388,13 @@
             }
         }
 
-        // Показать игровой экран
-        function showGameView(lobby, gameMode) {
+        function showGameView() {
             document.getElementById('mainMenu').classList.remove('active');
             document.getElementById('lobbyView').classList.remove('active');
             document.getElementById('createLobby').classList.remove('active');
             document.getElementById('gameView').classList.add('active');
-            
-            document.getElementById('gameTitle').textContent = `🎮 ${lobby.name}`;
-            document.getElementById('gameModeDisplay').textContent = `Режим: ${gameMode}`;
-            document.getElementById('gamePlayersCount').textContent = lobby.players.length;
-            document.getElementById('gameScore').textContent = '0';
-            document.getElementById('gameMoves').textContent = '0';
-            
-            generateGameBoard();
         }
 
-        // Генерация игрового поля
-        function generateGameBoard() {
-            const board = document.getElementById('gameBoard');
-            const tiles = [];
-            const colors = ['0', '1', '2', '3', '4', '5', '6', '7'];
-            
-            // Создаем 8 пар (16 плиток)
-            for (let i = 0; i < 8; i++) {
-                tiles.push(colors[i], colors[i]);
-            }
-            
-            // Перемешиваем
-            for (let i = tiles.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
-            }
-            
-            board.innerHTML = '';
-            tiles.forEach((color, index) => {
-                const tile = document.createElement('button');
-                tile.className = `game-tile game-tile-${color}`;
-                tile.dataset.index = index;
-                tile.dataset.color = color;
-                tile.dataset.flipped = 'false';
-                tile.textContent = '?';
-                tile.onclick = () => flipTile(tile);
-                board.appendChild(tile);
-            });
-        }
-
-        // Переворот плитки
-        let selectedTiles = [];
-        let matchedPairs = 0;
-        let moves = 0;
-        let score = 0;
-
-        function flipTile(tile) {
-            if (tile.dataset.flipped === 'true') return;
-            if (selectedTiles.length >= 2) return;
-            
-            tile.dataset.flipped = 'true';
-            tile.textContent = '';
-            selectedTiles.push(tile);
-            
-            if (selectedTiles.length === 2) {
-                moves++;
-                document.getElementById('gameMoves').textContent = moves;
-                
-                const [tile1, tile2] = selectedTiles;
-                if (tile1.dataset.color === tile2.dataset.color) {
-                    matchedPairs++;
-                    score += 10;
-                    document.getElementById('gameScore').textContent = score;
-                    selectedTiles = [];
-                    
-                    if (matchedPairs === 8) {
-                        setTimeout(() => {
-                            showNotification('🎉 Вы выиграли!', 'success');
-                        }, 500);
-                    }
-                } else {
-                    setTimeout(() => {
-                        tile1.dataset.flipped = 'false';
-                        tile1.textContent = '?';
-                        tile2.dataset.flipped = 'false';
-                        tile2.textContent = '?';
-                        selectedTiles = [];
-                    }, 1000);
-                }
-            }
-        }
-
-        // Выход из игры
         function leaveGame() {
             if (confirm('Вы уверены, что хотите выйти из игры?')) {
                 document.getElementById('gameView').classList.remove('active');
@@ -1166,7 +1402,6 @@
             }
         }
 
-        // Уведомления
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;

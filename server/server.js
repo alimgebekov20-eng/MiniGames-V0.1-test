@@ -316,6 +316,29 @@ app.get('/api/lobbies/search', (req, res) => {
     });
 });
 
+// Добавьте в server.js после других app.get
+
+// Health check для Render
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        uptime: process.uptime(),
+        timestamp: Date.now(),
+        lobbiesCount: lobbies.length,
+        playersCount: Object.keys(players).length
+    });
+});
+
+// Авто-пинг каждые 10 минут, чтобы сервер не засыпал
+setInterval(() => {
+    // Пинг самого себя
+    const url = `http://localhost:${PORT}/health`;
+    fetch(url)
+        .then(res => res.json())
+        .then(data => console.log('✅ Self-ping успешен'))
+        .catch(err => console.log('⚠️ Self-ping ошибка:', err.message));
+}, 10 * 60 * 1000); // Каждые 10 минут
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Сервер запущен на порту ${PORT}`);

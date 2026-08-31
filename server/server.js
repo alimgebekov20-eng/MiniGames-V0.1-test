@@ -113,7 +113,8 @@ class Lobby {
             winner: this.winner,
             players: this.players.map(p => p.name),
             setterIndex: this.setterIndex,
-            totalPlayers: this.players.length
+            totalPlayers: this.players.length,
+            code: this.code
         };
     }
 }
@@ -265,7 +266,24 @@ wss.on('connection', (ws) => {
                                 broadcastLobbyUpdate(gameLobby.id);
                                 broadcastLobbies();
                                 
+                                // Отправляем состояние игры всем
                                 broadcastGameState(gameLobby.id);
+                                
+                                // Отправляем каждому игроку что игра началась
+                                wss.clients.forEach(client => {
+                                    if (client.readyState === WebSocket.OPEN) {
+                                        const playerId = Object.keys(players).find(id => players[id].socketId === client._socket.remoteAddress);
+                                        if (playerId) {
+                                            const player = players[playerId];
+                                            if (player && player.currentLobbyId === gameLobby.id) {
+                                                client.send(JSON.stringify({
+                                                    type: 'gameStarted',
+                                                    lobby: gameLobby.getInfo(parseInt(playerId))
+                                                }));
+                                            }
+                                        }
+                                    }
+                                });
                             } else {
                                 ws.send(JSON.stringify({
                                     type: 'error',

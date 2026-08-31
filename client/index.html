@@ -161,6 +161,17 @@
             transform: translateY(-2px);
         }
 
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #dd6b20;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(237, 137, 54, 0.4);
+        }
+
         .lobby-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -495,6 +506,7 @@
             background: #f8f9fa;
             border-radius: 10px;
             border: 2px dashed #ccc;
+            position: relative;
         }
 
         .color-block {
@@ -616,6 +628,38 @@
         .game-mode-modal .modal-content .mode-btn {
             width: 100%;
             margin: 5px 0;
+        }
+
+        .remove-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .remove-toggle .toggle-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .remove-toggle .toggle-status {
+            font-weight: 700;
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        .toggle-status.on {
+            background: #fc8181;
+            color: white;
+        }
+
+        .toggle-status.off {
+            background: #48bb78;
+            color: white;
         }
 
         @media (max-width: 768px) {
@@ -766,7 +810,15 @@
             <div id="settingPhase" style="display: none;">
                 <div style="text-align: center; margin: 20px 0;">
                     <h3>Выберите 5 цветов в правильной последовательности</h3>
-                    <p style="color: #666;">Нажмите на цвет, чтобы добавить его. Нажмите на блок, чтобы убрать.</p>
+                    <p style="color: #666;">Нажмите на цвет, чтобы добавить его.</p>
+                </div>
+
+                <div class="remove-toggle">
+                    <span class="toggle-label">🔧 Режим убирания:</span>
+                    <button onclick="toggleRemoveMode()" class="btn btn-warning" id="removeModeBtn" style="padding: 8px 20px;">
+                        🔄 <span id="removeModeStatus">Выкл</span>
+                    </button>
+                    <span class="toggle-status off" id="removeModeIndicator">Выкл</span>
                 </div>
                 
                 <div class="color-palette">
@@ -848,6 +900,7 @@
         let isSettingPhase = false;
         let isGuessingPhase = false;
         let gameState = null;
+        let removeMode = false;
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
@@ -859,14 +912,28 @@
             ws = new WebSocket(WS_URL);
 
             ws.onopen = () => {
-                const playerName = prompt('Введите ваше имя:', 'Игрок ' + Math.floor(Math.random() * 1000));
-                if (playerName) {
-                    document.getElementById('playerName').textContent = playerName;
-                    ws.send(JSON.stringify({
-                        type: 'join',
-                        name: playerName
-                    }));
+                let playerName = '';
+                let validName = false;
+                
+                while (!validName) {
+                    playerName = prompt('Введите ваше имя (только английские буквы и цифры, минимум 3 символа):', '');
+                    if (playerName === null) {
+                        // Если нажали Отмена, генерируем случайное имя
+                        playerName = 'Player' + Math.floor(Math.random() * 10000);
+                        validName = true;
+                    } else if (playerName.trim().length >= 3 && /^[a-zA-Z0-9]+$/.test(playerName.trim())) {
+                        playerName = playerName.trim();
+                        validName = true;
+                    } else {
+                        alert('Имя должно содержать минимум 3 символа (только английские буквы и цифры)');
+                    }
                 }
+                
+                document.getElementById('playerName').textContent = playerName;
+                ws.send(JSON.stringify({
+                    type: 'join',
+                    name: playerName
+                }));
             };
 
             ws.onmessage = (event) => {
@@ -889,6 +956,7 @@
             switch (data.type) {
                 case 'joined':
                     currentPlayerId = data.playerId;
+                    document.getElementById('playerName').textContent = data.playerName || 'Гость';
                     renderLobbies(data.lobbies);
                     break;
 
@@ -973,6 +1041,28 @@
             }
         }
 
+        // Переключение режима убирания
+        function toggleRemoveMode() {
+            removeMode = !removeMode;
+            const statusEl = document.getElementById('removeModeStatus');
+            const indicatorEl = document.getElementById('removeModeIndicator');
+            const btnEl = document.getElementById('removeModeBtn');
+            
+            if (removeMode) {
+                statusEl.textContent = 'Вкл';
+                indicatorEl.textContent = 'Вкл';
+                indicatorEl.className = 'toggle-status on';
+                btnEl.style.background = '#fc8181';
+                document.getElementById('gameStatus').textContent = '🔧 Режим убирания включен - нажимайте на блоки чтобы убрать';
+            } else {
+                statusEl.textContent = 'Выкл';
+                indicatorEl.textContent = 'Выкл';
+                indicatorEl.className = 'toggle-status off';
+                btnEl.style.background = '#ed8936';
+                document.getElementById('gameStatus').textContent = '🎨 Выберите последовательность из 5 цветов';
+            }
+        }
+
         // Обработка состояния игры
         function handleGameState(state) {
             gameState = state;
@@ -1003,6 +1093,11 @@
             currentSequence = [];
             updateSequenceDisplay();
             document.getElementById('submitSequenceBtn').style.display = 'none';
+            removeMode = false;
+            document.getElementById('removeModeStatus').textContent = 'Выкл';
+            document.getElementById('removeModeIndicator').textContent = 'Выкл';
+            document.getElementById('removeModeIndicator').className = 'toggle-status off';
+            document.getElementById('removeModeBtn').style.background = '#ed8936';
         }
 
         function showGuessingPhase() {
@@ -1026,9 +1121,25 @@
             isGuessingPhase = false;
         }
 
-        // ИСПРАВЛЕННЫЕ ФУНКЦИИ
         function addColorToSequence(color) {
-            if (!isSettingPhase || currentSequence.length >= 5) return;
+            if (!isSettingPhase) return;
+            if (removeMode) {
+                // Если режим убирания включен, пытаемся убрать последний блок
+                if (currentSequence.length > 0) {
+                    currentSequence.pop();
+                    updateSequenceDisplay();
+                    document.getElementById('submitSequenceBtn').style.display = currentSequence.length === 5 ? 'inline-block' : 'none';
+                    showNotification('Блок убран!', 'info');
+                } else {
+                    showNotification('Нет блоков для убирания', 'error');
+                }
+                return;
+            }
+            
+            if (currentSequence.length >= 5) {
+                showNotification('Максимум 5 блоков!', 'error');
+                return;
+            }
             currentSequence.push(color);
             updateSequenceDisplay();
             document.getElementById('submitSequenceBtn').style.display = currentSequence.length === 5 ? 'inline-block' : 'none';
@@ -1051,7 +1162,7 @@
             }
             container.innerHTML = currentSequence.map((color, index) => `
                 <div class="color-block" style="background: ${getColorValue(color)};" 
-                     onclick="event.stopPropagation(); removeColorFromSequence(${index})"></div>
+                     onclick="event.stopPropagation(); if(!removeMode) removeColorFromSequence(${index})"></div>
             `).join('');
         }
 

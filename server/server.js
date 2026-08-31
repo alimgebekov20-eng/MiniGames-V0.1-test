@@ -12,13 +12,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client')));
 
-// Хранилище лобби
+// Хранилище
 let lobbies = [];
 let players = {};
 let nextLobbyId = 1;
 let nextPlayerId = 1;
 
-// Генерация кода для закрытых лобби
+// Генерация кода
 function generateLobbyCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -37,6 +37,15 @@ class Lobby {
         this.createdAt = Date.now();
         this.popularity = 0;
         this.gameMode = null;
+        this.currentSetter = null;
+        this.currentGuesser = null;
+        this.setterIndex = 0;
+        this.sequence = [];
+        this.guesses = [];
+        this.round = 0;
+        this.gameOver = false;
+        this.winner = null;
+        this.settingPhase = false;
     }
 
     addPlayer(player) {
@@ -69,16 +78,43 @@ class Lobby {
             isPrivate: this.isPrivate,
             isGameStarted: this.isGameStarted,
             creatorId: this.creatorId,
-            players: this.players.map(p => ({ id: p.id, name: p.name, isCreator: p.id === this.creatorId })),
-            gameMode: this.gameMode
+            players: this.players.map(p => ({ 
+                id: p.id, 
+                name: p.name, 
+                isCreator: p.id === this.creatorId 
+            })),
+            gameMode: this.gameMode,
+            gameOver: this.gameOver,
+            winner: this.winner
         };
         
-        // Показываем код только создателю и игрокам в лобби
         if (forPlayerId && this.players.some(p => p.id === forPlayerId)) {
             info.code = this.code;
         }
         
         return info;
+    }
+
+    getGameState(forPlayerId) {
+        const player = this.players.find(p => p.id === forPlayerId);
+        const isSetter = this.currentSetter && this.currentSetter.id === forPlayerId;
+        const isGuesser = this.currentGuesser && this.currentGuesser.id === forPlayerId;
+        
+        return {
+            isSetting: this.settingPhase && isSetter,
+            isGuessing: !this.settingPhase && isGuesser,
+            isSpectator: !isSetter && !isGuesser && this.isGameStarted,
+            currentSetter: this.currentSetter ? this.currentSetter.name : null,
+            currentGuesser: this.currentGuesser ? this.currentGuesser.name : null,
+            sequence: this.settingPhase ? [] : this.sequence,
+            guesses: this.guesses,
+            round: this.round,
+            gameOver: this.gameOver,
+            winner: this.winner,
+            players: this.players.map(p => p.name),
+            setterIndex: this.setterIndex,
+            totalPlayers: this.players.length
+        };
     }
 }
 
@@ -216,19 +252,118 @@ wss.on('connection', (ws) => {
                             if (gameLobby.players.length >= 2) {
                                 gameLobby.isGameStarted = true;
                                 gameLobby.gameMode = data.gameMode || 'Угадай последовательность';
+                                gameLobby.setterIndex = 0;
+                                gameLobby.currentSetter = gameLobby.players[0];
+                                gameLobby.currentGuesser = gameLobby.players[1];
+                                gameLobby.settingPhase = true;
+                                gameLobby.sequence = [];
+                                gameLobby.guesses = [];
+                                gameLobby.round = 0;
+                                gameLobby.gameOver = false;
+                                gameLobby.winner = null;
+                                
                                 broadcastLobbyUpdate(gameLobby.id);
                                 broadcastLobbies();
                                 
-                                ws.send(JSON.stringify({
-                                    type: 'gameStarted',
-                                    lobby: gameLobby.getInfo(player.id),
-                                    gameMode: gameLobby.gameMode
-                                }));
+                                broadcastGameState(gameLobby.id);
                             } else {
                                 ws.send(JSON.stringify({
                                     type: 'error',
                                     message: 'Недостаточно игроков для начала игры (минимум 2)'
                                 }));
+                            }
+                        }
+                    }
+                    break;
+
+                case 'setSequence':
+                    if (player && player.currentLobbyId) {
+                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
+                        if (gameLobby && gameLobby.settingPhase && gameLobby.currentSetter.id === player.id) {
+                            gameLobby.sequence = data.sequence;
+                            gameLobby.settingPhase = false;
+                            gameLobby.round++;
+                            gameLobby.guesses = [];
+                            
+                            const totalPlayers = gameLobby.players.length;
+                            const nextIndex = (gameLobby.setterIndex + 1) % totalPlayers;
+                            gameLobby.setterIndex = nextIndex;
+                            gameLobby.currentSetter = gameLobby.players[nextIndex];
+                            gameLobby.currentGuesser = gameLobby.players[(nextIndex + 1) % totalPlayers];
+                            
+                            broadcastGameState(gameLobby.id);
+                        }
+                    }
+                    break;
+
+                case 'makeGuess':
+                    if (player && player.currentLobbyId) {
+                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
+                        if (gameLobby && !gameLobby.settingPhase && gameLobby.currentGuesser.id === player.id) {
+                            const guess = data.guess;
+                            gameLobby.guesses.push(guess);
+                            
+                            let correct = 0;
+                            let wrongPosition = 0;
+                            const sequenceCopy = [...gameLobby.sequence];
+                            const guessCopy = [...guess];
+                            
+                            for (let i = 0; i < sequenceCopy.length; i++) {
+                                if (sequenceCopy[i] === guessCopy[i]) {
+                                    correct++;
+                                    sequenceCopy[i] = null;
+                                    guessCopy[i] = null;
+                                }
+                            }
+                            
+                            for (let i = 0; i < guessCopy.length; i++) {
+                                if (guessCopy[i] !== null) {
+                                    const index = sequenceCopy.indexOf(guessCopy[i]);
+                                    if (index !== -1) {
+                                        wrongPosition++;
+                                        sequenceCopy[index] = null;
+                                    }
+                                }
+                            }
+                            
+                            const result = {
+                                guess: guess,
+                                correct: correct,
+                                wrongPosition: wrongPosition,
+                                isWin: correct === 5
+                            };
+                            
+                            broadcastGameResult(gameLobby.id, result);
+                            
+                            if (result.isWin) {
+                                gameLobby.gameOver = true;
+                                gameLobby.winner = player.id;
+                                broadcastGameState(gameLobby.id);
+                                
+                                setTimeout(() => {
+                                    gameLobby.isGameStarted = false;
+                                    gameLobby.gameOver = false;
+                                    gameLobby.winner = null;
+                                    gameLobby.sequence = [];
+                                    gameLobby.guesses = [];
+                                    broadcastLobbyUpdate(gameLobby.id);
+                                    broadcastLobbies();
+                                }, 5000);
+                            } else {
+                                const totalPlayers = gameLobby.players.length;
+                                const currentIndex = gameLobby.players.findIndex(p => p.id === player.id);
+                                const nextIndex = (currentIndex + 1) % totalPlayers;
+                                const nextPlayer = gameLobby.players[nextIndex];
+                                
+                                if (nextPlayer.id === gameLobby.currentSetter.id) {
+                                    gameLobby.settingPhase = true;
+                                    gameLobby.currentSetter = gameLobby.players[gameLobby.setterIndex];
+                                    gameLobby.currentGuesser = gameLobby.players[(gameLobby.setterIndex + 1) % totalPlayers];
+                                } else {
+                                    gameLobby.currentGuesser = nextPlayer;
+                                }
+                                
+                                broadcastGameState(gameLobby.id);
                             }
                         }
                     }
@@ -256,19 +391,12 @@ wss.on('connection', (ws) => {
                                 type: 'lobbyInfo',
                                 lobby: currentLobby.getInfo(player.id)
                             }));
-                        }
-                    }
-                    break;
-
-                case 'toggleCodeVisibility':
-                    if (player && player.currentLobbyId) {
-                        const lobby = lobbies.find(l => l.id === player.currentLobbyId);
-                        if (lobby && lobby.creatorId === player.id) {
-                            // Просто отправляем обновленную информацию
-                            ws.send(JSON.stringify({
-                                type: 'lobbyInfo',
-                                lobby: lobby.getInfo(player.id)
-                            }));
+                            if (currentLobby.isGameStarted) {
+                                ws.send(JSON.stringify({
+                                    type: 'gameState',
+                                    state: currentLobby.getGameState(player.id)
+                                }));
+                            }
                         }
                     }
                     break;
@@ -301,7 +429,6 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Вспомогательные функции
 function getPopularLobbies() {
     return lobbies
         .filter(l => !l.isGameStarted)
@@ -335,7 +462,6 @@ function broadcastLobbyUpdate(lobbyId) {
     if (lobby) {
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
-                // Отправляем каждому клиенту его версию лобби (с кодом или без)
                 const playerId = Object.keys(players).find(id => players[id].socketId === client._socket.remoteAddress);
                 if (playerId) {
                     const player = players[playerId];
@@ -350,7 +476,48 @@ function broadcastLobbyUpdate(lobbyId) {
     }
 }
 
-// HTTP маршруты
+function broadcastGameState(lobbyId) {
+    const lobby = lobbies.find(l => l.id === lobbyId);
+    if (lobby) {
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                const playerId = Object.keys(players).find(id => players[id].socketId === client._socket.remoteAddress);
+                if (playerId) {
+                    const player = players[playerId];
+                    if (player && player.currentLobbyId === lobbyId) {
+                        client.send(JSON.stringify({
+                            type: 'gameState',
+                            state: lobby.getGameState(parseInt(playerId))
+                        }));
+                    }
+                }
+            }
+        });
+    }
+}
+
+function broadcastGameResult(lobbyId, result) {
+    const lobby = lobbies.find(l => l.id === lobbyId);
+    if (lobby) {
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                const playerId = Object.keys(players).find(id => players[id].socketId === client._socket.remoteAddress);
+                if (playerId) {
+                    const player = players[playerId];
+                    if (player && player.currentLobbyId === lobbyId) {
+                        client.send(JSON.stringify({
+                            type: 'gameResult',
+                            result: result,
+                            isWin: result.isWin,
+                            winner: result.isWin ? lobby.winner : null
+                        }));
+                    }
+                }
+            }
+        });
+    }
+}
+
 app.get('/api/lobbies', (req, res) => {
     res.json(getPopularLobbies());
 });

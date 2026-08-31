@@ -835,7 +835,7 @@
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const WS_URL = isLocal 
             ? 'ws://localhost:3000' 
-            : 'wss://' + window.location.hostname;
+            : 'wss://minigames-eb2w.onrender.com';
 
         let ws = null;
         let currentPlayerId = null;
@@ -906,6 +906,13 @@
                     currentLobbyId = data.lobby.id;
                     showLobbyView(data.lobby);
                     showNotification('Вы присоединились к лобби!', 'success');
+                    setTimeout(() => {
+                        if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                            ws.send(JSON.stringify({
+                                type: 'getLobbyInfo'
+                            }));
+                        }
+                    }, 500);
                     break;
 
                 case 'lobbyUpdate':
@@ -916,6 +923,15 @@
 
                 case 'lobbyInfo':
                     updateLobbyView(data.lobby);
+                    if (data.lobby.isGameStarted) {
+                        setTimeout(() => {
+                            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                                ws.send(JSON.stringify({
+                                    type: 'getLobbyInfo'
+                                }));
+                            }
+                        }, 300);
+                    }
                     break;
 
                 case 'leftLobby':
@@ -927,6 +943,13 @@
                 case 'gameStarted':
                     showGameView();
                     showNotification('Игра началась! 🎮', 'success');
+                    setTimeout(() => {
+                        if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                            ws.send(JSON.stringify({
+                                type: 'getLobbyInfo'
+                            }));
+                        }
+                    }, 500);
                     break;
 
                 case 'gameState':
@@ -1130,11 +1153,8 @@
             document.getElementById('gameStatus').textContent = '🏆 Игра завершена!';
             
             const container = document.getElementById('resultDisplay');
-            // Ищем победителя среди игроков
-            let winnerName = 'Игрок';
-            // В реальности нужно получить имя победителя с сервера
             container.innerHTML = `
-                <div class="winner-text">🎉 Победитель найден!</div>
+                <div class="winner-text">🎉 Игра завершена!</div>
                 <p style="font-size: 18px; margin-top: 20px;">Возвращение в лобби через 5 секунд...</p>
             `;
         }

@@ -17,10 +17,28 @@ let lobbies = [];
 let players = {};
 let nextLobbyId = 1;
 let nextPlayerId = 1;
+let usedNames = new Set();
 
 // Генерация кода
 function generateLobbyCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// Генерация случайного имени
+function generateRandomName() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let name = '';
+    for (let i = 0; i < 10; i++) {
+        name += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return name;
+}
+
+// Проверка имени
+function isValidName(name) {
+    if (!name || name.length < 3) return false;
+    if (!/^[a-zA-Z0-9]+$/.test(name)) return false;
+    return true;
 }
 
 // Класс лобби
@@ -139,11 +157,20 @@ wss.on('connection', (ws) => {
             
             switch (data.type) {
                 case 'join':
-                    player = new Player(data.name, ws._socket.remoteAddress);
+                    let playerName = data.name;
+                    // Если имя невалидное, генерируем случайное
+                    if (!isValidName(playerName)) {
+                        do {
+                            playerName = generateRandomName();
+                        } while (usedNames.has(playerName));
+                    }
+                    usedNames.add(playerName);
+                    player = new Player(playerName, ws._socket.remoteAddress);
                     players[player.id] = player;
                     ws.send(JSON.stringify({
                         type: 'joined',
                         playerId: player.id,
+                        playerName: playerName,
                         lobbies: getPopularLobbies()
                     }));
                     break;
@@ -440,6 +467,7 @@ wss.on('connection', (ws) => {
             }
         }
         if (player) {
+            usedNames.delete(player.name);
             delete players[player.id];
         }
     });

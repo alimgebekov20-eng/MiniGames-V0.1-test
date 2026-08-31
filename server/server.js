@@ -64,6 +64,9 @@ class Lobby {
         this.gameOver = false;
         this.winner = null;
         this.settingPhase = false;
+        this.tempSequence = [];
+        this.tempGuess = [];
+        this.removeMode = false;
     }
 
     addPlayer(player) {
@@ -124,7 +127,7 @@ class Lobby {
             isSpectator: !isSetter && !isGuesser && this.isGameStarted,
             currentSetter: this.currentSetter ? this.currentSetter.name : null,
             currentGuesser: this.currentGuesser ? this.currentGuesser.name : null,
-            sequence: this.settingPhase ? [] : this.sequence,
+            sequence: this.settingPhase ? this.tempSequence : this.sequence,
             guesses: this.guesses,
             round: this.round,
             gameOver: this.gameOver,
@@ -132,7 +135,10 @@ class Lobby {
             players: this.players.map(p => p.name),
             setterIndex: this.setterIndex,
             totalPlayers: this.players.length,
-            code: this.code
+            code: this.code,
+            removeMode: this.removeMode,
+            tempSequence: this.tempSequence,
+            tempGuess: this.tempGuess
         };
     }
 }
@@ -158,7 +164,6 @@ wss.on('connection', (ws) => {
             switch (data.type) {
                 case 'join':
                     let playerName = data.name;
-                    // Если имя невалидное, генерируем случайное
                     if (!isValidName(playerName)) {
                         do {
                             playerName = generateRandomName();
@@ -285,14 +290,16 @@ wss.on('connection', (ws) => {
                                 gameLobby.currentGuesser = gameLobby.players[1];
                                 gameLobby.settingPhase = true;
                                 gameLobby.sequence = [];
+                                gameLobby.tempSequence = [];
+                                gameLobby.tempGuess = [];
                                 gameLobby.guesses = [];
                                 gameLobby.round = 0;
                                 gameLobby.gameOver = false;
                                 gameLobby.winner = null;
+                                gameLobby.removeMode = false;
                                 
                                 broadcastLobbyUpdate(gameLobby.id);
                                 broadcastLobbies();
-                                
                                 broadcastGameState(gameLobby.id);
                                 
                                 wss.clients.forEach(client => {
@@ -319,94 +326,172 @@ wss.on('connection', (ws) => {
                     }
                     break;
 
-                case 'setSequence':
+                case 'toggleRemoveMode':
                     if (player && player.currentLobbyId) {
                         const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
                         if (gameLobby && gameLobby.settingPhase && gameLobby.currentSetter.id === player.id) {
-                            gameLobby.sequence = data.sequence;
-                            gameLobby.settingPhase = false;
-                            gameLobby.round++;
-                            gameLobby.guesses = [];
-                            
-                            const totalPlayers = gameLobby.players.length;
-                            const nextIndex = (gameLobby.setterIndex + 1) % totalPlayers;
-                            gameLobby.setterIndex = nextIndex;
-                            gameLobby.currentSetter = gameLobby.players[nextIndex];
-                            gameLobby.currentGuesser = gameLobby.players[(nextIndex + 1) % totalPlayers];
-                            
+                            gameLobby.removeMode = !gameLobby.removeMode;
                             broadcastGameState(gameLobby.id);
                         }
                     }
                     break;
 
-                case 'makeGuess':
+                case 'addColorToSequence':
+                    if (player && player.currentLobbyId) {
+                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
+                        if (gameLobby && gameLobby.settingPhase && gameLobby.currentSetter.id === player.id) {
+                            if (gameLobby.removeMode) {
+                                if (gameLobby.tempSequence.length > 0) {
+                                    gameLobby.tempSequence.pop();
+                                    broadcastGameState(gameLobby.id);
+                                }
+                            } else {
+                                if (gameLobby.tempSequence.length < 5) {
+                                    gameLobby.tempSequence.push(data.color);
+                                    broadcastGameState(gameLobby.id);
+                                }
+                            }
+                        }
+                    }
+                    break;
+
+                case 'removeColorFromSequence':
+                    if (player && player.currentLobbyId) {
+                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
+                        if (gameLobby && gameLobby.settingPhase && gameLobby.currentSetter.id === player.id) {
+                            const index = data.index;
+                            if (index >= 0 && index < gameLobby.tempSequence.length) {
+                                gameLobby.tempSequence.splice(index, 1);
+                                broadcastGameState(gameLobby.id);
+                            }
+                        }
+                    }
+                    break;
+
+                case 'submitSequence':
+                    if (player && player.currentLobbyId) {
+                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
+                        if (gameLobby && gameLobby.settingPhase && gameLobby.currentSetter.id === player.id) {
+                            if (gameLobby.tempSequence.length === 5) {
+                                gameLobby.sequence = [...gameLobby.tempSequence];
+                                gameLobby.settingPhase = false;
+                                gameLobby.round++;
+                                gameLobby.guesses = [];
+                                gameLobby.tempSequence = [];
+                                gameLobby.tempGuess = [];
+                                
+                                const totalPlayers = gameLobby.players.length;
+                                const nextIndex = (gameLobby.setterIndex + 1) % totalPlayers;
+                                gameLobby.setterIndex = nextIndex;
+                                gameLobby.currentSetter = gameLobby.players[nextIndex];
+                                gameLobby.currentGuesser = gameLobby.players[(nextIndex + 1) % totalPlayers];
+                                
+                                broadcastGameState(gameLobby.id);
+                            }
+                        }
+                    }
+                    break;
+
+                case 'addColorToGuess':
                     if (player && player.currentLobbyId) {
                         const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
                         if (gameLobby && !gameLobby.settingPhase && gameLobby.currentGuesser.id === player.id) {
-                            const guess = data.guess;
-                            gameLobby.guesses.push(guess);
-                            
-                            let correct = 0;
-                            let wrongPosition = 0;
-                            const sequenceCopy = [...gameLobby.sequence];
-                            const guessCopy = [...guess];
-                            
-                            for (let i = 0; i < sequenceCopy.length; i++) {
-                                if (sequenceCopy[i] === guessCopy[i]) {
-                                    correct++;
-                                    sequenceCopy[i] = null;
-                                    guessCopy[i] = null;
-                                }
+                            if (gameLobby.tempGuess.length < 5) {
+                                gameLobby.tempGuess.push(data.color);
+                                broadcastGameState(gameLobby.id);
                             }
-                            
-                            for (let i = 0; i < guessCopy.length; i++) {
-                                if (guessCopy[i] !== null) {
-                                    const index = sequenceCopy.indexOf(guessCopy[i]);
-                                    if (index !== -1) {
-                                        wrongPosition++;
-                                        sequenceCopy[index] = null;
+                        }
+                    }
+                    break;
+
+                case 'removeColorFromGuess':
+                    if (player && player.currentLobbyId) {
+                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
+                        if (gameLobby && !gameLobby.settingPhase && gameLobby.currentGuesser.id === player.id) {
+                            const index = data.index;
+                            if (index >= 0 && index < gameLobby.tempGuess.length) {
+                                gameLobby.tempGuess.splice(index, 1);
+                                broadcastGameState(gameLobby.id);
+                            }
+                        }
+                    }
+                    break;
+
+                case 'submitGuess':
+                    if (player && player.currentLobbyId) {
+                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
+                        if (gameLobby && !gameLobby.settingPhase && gameLobby.currentGuesser.id === player.id) {
+                            if (gameLobby.tempGuess.length === 5) {
+                                const guess = [...gameLobby.tempGuess];
+                                gameLobby.guesses.push(guess);
+                                gameLobby.tempGuess = [];
+                                
+                                let correct = 0;
+                                let wrongPosition = 0;
+                                const sequenceCopy = [...gameLobby.sequence];
+                                const guessCopy = [...guess];
+                                
+                                for (let i = 0; i < sequenceCopy.length; i++) {
+                                    if (sequenceCopy[i] === guessCopy[i]) {
+                                        correct++;
+                                        sequenceCopy[i] = null;
+                                        guessCopy[i] = null;
                                     }
                                 }
-                            }
-                            
-                            const result = {
-                                guess: guess,
-                                correct: correct,
-                                wrongPosition: wrongPosition,
-                                isWin: correct === 5
-                            };
-                            
-                            broadcastGameResult(gameLobby.id, result);
-                            
-                            if (result.isWin) {
-                                gameLobby.gameOver = true;
-                                gameLobby.winner = player.id;
-                                broadcastGameState(gameLobby.id);
                                 
-                                setTimeout(() => {
-                                    gameLobby.isGameStarted = false;
-                                    gameLobby.gameOver = false;
-                                    gameLobby.winner = null;
-                                    gameLobby.sequence = [];
-                                    gameLobby.guesses = [];
-                                    broadcastLobbyUpdate(gameLobby.id);
-                                    broadcastLobbies();
-                                }, 5000);
-                            } else {
-                                const totalPlayers = gameLobby.players.length;
-                                const currentIndex = gameLobby.players.findIndex(p => p.id === player.id);
-                                const nextIndex = (currentIndex + 1) % totalPlayers;
-                                const nextPlayer = gameLobby.players[nextIndex];
-                                
-                                if (nextPlayer.id === gameLobby.currentSetter.id) {
-                                    gameLobby.settingPhase = true;
-                                    gameLobby.currentSetter = gameLobby.players[gameLobby.setterIndex];
-                                    gameLobby.currentGuesser = gameLobby.players[(gameLobby.setterIndex + 1) % totalPlayers];
-                                } else {
-                                    gameLobby.currentGuesser = nextPlayer;
+                                for (let i = 0; i < guessCopy.length; i++) {
+                                    if (guessCopy[i] !== null) {
+                                        const index = sequenceCopy.indexOf(guessCopy[i]);
+                                        if (index !== -1) {
+                                            wrongPosition++;
+                                            sequenceCopy[index] = null;
+                                        }
+                                    }
                                 }
                                 
-                                broadcastGameState(gameLobby.id);
+                                const result = {
+                                    guess: guess,
+                                    correct: correct,
+                                    wrongPosition: wrongPosition,
+                                    isWin: correct === 5
+                                };
+                                
+                                broadcastGameResult(gameLobby.id, result);
+                                
+                                if (result.isWin) {
+                                    gameLobby.gameOver = true;
+                                    gameLobby.winner = player.id;
+                                    broadcastGameState(gameLobby.id);
+                                    
+                                    setTimeout(() => {
+                                        gameLobby.isGameStarted = false;
+                                        gameLobby.gameOver = false;
+                                        gameLobby.winner = null;
+                                        gameLobby.sequence = [];
+                                        gameLobby.tempSequence = [];
+                                        gameLobby.tempGuess = [];
+                                        gameLobby.guesses = [];
+                                        broadcastLobbyUpdate(gameLobby.id);
+                                        broadcastLobbies();
+                                    }, 5000);
+                                } else {
+                                    const totalPlayers = gameLobby.players.length;
+                                    const currentIndex = gameLobby.players.findIndex(p => p.id === player.id);
+                                    const nextIndex = (currentIndex + 1) % totalPlayers;
+                                    const nextPlayer = gameLobby.players[nextIndex];
+                                    
+                                    if (nextPlayer.id === gameLobby.currentSetter.id) {
+                                        gameLobby.settingPhase = true;
+                                        gameLobby.currentSetter = gameLobby.players[gameLobby.setterIndex];
+                                        gameLobby.currentGuesser = gameLobby.players[(gameLobby.setterIndex + 1) % totalPlayers];
+                                        gameLobby.tempSequence = [];
+                                        gameLobby.tempGuess = [];
+                                    } else {
+                                        gameLobby.currentGuesser = nextPlayer;
+                                    }
+                                    
+                                    broadcastGameState(gameLobby.id);
+                                }
                             }
                         }
                     }

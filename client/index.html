@@ -1026,6 +1026,7 @@
             isGuessingPhase = false;
         }
 
+        // ИСПРАВЛЕННЫЕ ФУНКЦИИ
         function addColorToSequence(color) {
             if (!isSettingPhase || currentSequence.length >= 5) return;
             currentSequence.push(color);
@@ -1035,9 +1036,11 @@
 
         function removeColorFromSequence(index) {
             if (!isSettingPhase) return;
-            currentSequence.splice(index, 1);
-            updateSequenceDisplay();
-            document.getElementById('submitSequenceBtn').style.display = currentSequence.length === 5 ? 'inline-block' : 'none';
+            if (index >= 0 && index < currentSequence.length) {
+                currentSequence.splice(index, 1);
+                updateSequenceDisplay();
+                document.getElementById('submitSequenceBtn').style.display = currentSequence.length === 5 ? 'inline-block' : 'none';
+            }
         }
 
         function updateSequenceDisplay() {
@@ -1047,7 +1050,8 @@
                 return;
             }
             container.innerHTML = currentSequence.map((color, index) => `
-                <div class="color-block" style="background: ${getColorValue(color)};" onclick="removeColorFromSequence(${index})"></div>
+                <div class="color-block" style="background: ${getColorValue(color)};" 
+                     onclick="event.stopPropagation(); removeColorFromSequence(${index})"></div>
             `).join('');
         }
 
@@ -1060,9 +1064,11 @@
 
         function removeColorFromGuess(index) {
             if (!isGuessingPhase) return;
-            currentGuess.splice(index, 1);
-            updateGuessDisplay();
-            document.getElementById('submitGuessBtn').style.display = currentGuess.length === 5 ? 'inline-block' : 'none';
+            if (index >= 0 && index < currentGuess.length) {
+                currentGuess.splice(index, 1);
+                updateGuessDisplay();
+                document.getElementById('submitGuessBtn').style.display = currentGuess.length === 5 ? 'inline-block' : 'none';
+            }
         }
 
         function updateGuessDisplay() {
@@ -1072,7 +1078,8 @@
                 return;
             }
             container.innerHTML = currentGuess.map((color, index) => `
-                <div class="color-block" style="background: ${getColorValue(color)};" onclick="removeColorFromGuess(${index})"></div>
+                <div class="color-block" style="background: ${getColorValue(color)};" 
+                     onclick="event.stopPropagation(); removeColorFromGuess(${index})"></div>
             `).join('');
         }
 

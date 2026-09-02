@@ -40,7 +40,7 @@ class GuessSequenceGame {
         
         return {
             isSetting: this.settingPhase,
-            isGuessing: !this.settingPhase && !this.gameOver,
+            isGuessing: !this.settingPhase && !this.gameOver && !this.showingResult,
             isSpectator: !this.settingPhase && !this.gameOver && !this.showingResult,
             gameOver: this.gameOver,
             winner: this.winner,
@@ -57,7 +57,9 @@ class GuessSequenceGame {
             waitingForContinue: this.waitingForContinue,
             players: players.map(p => p.name),
             totalPlayers: players.length,
-            canContinue: this.waitingForContinue && this.canContinue(forPlayerId)
+            canContinue: this.waitingForContinue && this.canContinue(forPlayerId),
+            isSetter: this.currentSetterIndex === players.findIndex(p => p.id === forPlayerId),
+            isGuesser: this.currentGuesserIndex === players.findIndex(p => p.id === forPlayerId)
         };
     }
 
@@ -110,6 +112,7 @@ class GuessSequenceGame {
         const playerIndex = players.findIndex(p => p.id === playerId);
         if (this.gameOver) return null;
 
+        // Переключение режима убирания
         if (action === 'toggleRemoveMode') {
             if (this.settingPhase && playerIndex === this.currentSetterIndex) {
                 this.removeMode = !this.removeMode;
@@ -118,6 +121,7 @@ class GuessSequenceGame {
             return null;
         }
 
+        // Добавление цвета в последовательность
         if (action === 'addColor') {
             if (this.settingPhase && playerIndex === this.currentSetterIndex) {
                 if (this.removeMode) {
@@ -135,6 +139,7 @@ class GuessSequenceGame {
             return null;
         }
 
+        // Удаление цвета из последовательности
         if (action === 'removeColor') {
             if (this.settingPhase && playerIndex === this.currentSetterIndex) {
                 const index = params.index;
@@ -146,6 +151,7 @@ class GuessSequenceGame {
             return null;
         }
 
+        // Подтверждение последовательности
         if (action === 'submitSequence') {
             if (this.settingPhase && playerIndex === this.currentSetterIndex && this.tempSequence.length === 5) {
                 this.sequence = [...this.tempSequence];
@@ -160,6 +166,7 @@ class GuessSequenceGame {
             return null;
         }
 
+        // Добавление цвета в угадывание
         if (action === 'addGuess') {
             if (!this.settingPhase && !this.gameOver && playerIndex === this.currentGuesserIndex) {
                 if (this.tempGuess.length < 5) {
@@ -170,6 +177,7 @@ class GuessSequenceGame {
             return null;
         }
 
+        // Удаление цвета из угадывания
         if (action === 'removeGuess') {
             if (!this.settingPhase && !this.gameOver && playerIndex === this.currentGuesserIndex) {
                 const index = params.index;
@@ -181,6 +189,7 @@ class GuessSequenceGame {
             return null;
         }
 
+        // Отправка угадывания
         if (action === 'submitGuess') {
             if (!this.settingPhase && !this.gameOver && playerIndex === this.currentGuesserIndex) {
                 if (this.tempGuess.length === 5) {
@@ -188,6 +197,7 @@ class GuessSequenceGame {
                     this.guesses.push(guess);
                     this.tempGuess = [];
                     
+                    // Проверка
                     let correct = 0;
                     let wrongPosition = 0;
                     const sequenceCopy = [...this.sequence];
@@ -213,6 +223,7 @@ class GuessSequenceGame {
                     
                     const isWin = correct === 5;
                     
+                    // Показываем результат
                     this.showingResult = true;
                     this.resultData = {
                         guess: guess,
@@ -230,16 +241,20 @@ class GuessSequenceGame {
                     
                     if (this.continueTimer) clearTimeout(this.continueTimer);
                     
+                    // Автоматическая кнопка через 5 секунд
                     this.continueTimer = setTimeout(() => {
                         this.waitingForContinue = false;
                         this.continueTimer = null;
+                        
                         if (isWin) {
                             this.gameOver = true;
                             this.winner = playerId;
                             return;
                         } else {
+                            // Передаем ход следующему
                             const totalPlayers = this.lobby.players.length;
                             const nextGuesserIndex = (this.currentGuesserIndex + 1) % totalPlayers;
+                            
                             if (nextGuesserIndex === this.currentSetterIndex) {
                                 const newSetterIndex = (this.currentSetterIndex + 1) % totalPlayers;
                                 this.currentSetterIndex = newSetterIndex;
@@ -266,11 +281,14 @@ class GuessSequenceGame {
             return null;
         }
 
+        // Продолжить после результата
         if (action === 'continue') {
             if (this.showingResult && this.waitingForContinue && playerIndex === this.currentGuesserIndex) {
                 if (this.continueTimer) return null;
+                
                 this.waitingForContinue = false;
                 this.showingResult = false;
+                
                 if (this.resultData && this.resultData.isWin) {
                     this.gameOver = true;
                     this.winner = playerId;
@@ -279,6 +297,7 @@ class GuessSequenceGame {
                 } else {
                     const totalPlayers = this.lobby.players.length;
                     const nextGuesserIndex = (this.currentGuesserIndex + 1) % totalPlayers;
+                    
                     if (nextGuesserIndex === this.currentSetterIndex) {
                         const newSetterIndex = (this.currentSetterIndex + 1) % totalPlayers;
                         this.currentSetterIndex = newSetterIndex;
@@ -292,6 +311,7 @@ class GuessSequenceGame {
                     } else {
                         this.currentGuesserIndex = nextGuesserIndex;
                     }
+                    
                     this.resultData = null;
                     return {};
                 }
@@ -303,7 +323,6 @@ class GuessSequenceGame {
     }
 }
 
-// Экспортируем для сервера
 module.exports = {
     displayName,
     description,

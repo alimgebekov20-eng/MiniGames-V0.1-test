@@ -3,6 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,6 +12,24 @@ const wss = new WebSocket.Server({ server });
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../client')));
+
+// Загрузка игр
+const games = {};
+const gamesPath = path.join(__dirname, '../games');
+if (fs.existsSync(gamesPath)) {
+    const gameFolders = fs.readdirSync(gamesPath);
+    gameFolders.forEach(folder => {
+        const serverPath = path.join(gamesPath, folder, `${folder}Server.js`);
+        if (fs.existsSync(serverPath)) {
+            const GameClass = require(serverPath);
+            games[folder] = {
+                class: GameClass,
+                instances: {}
+            };
+            console.log(`✅ Загружена игра: ${folder}`);
+        }
+    });
+}
 
 // Хранилище
 let lobbies = [];
@@ -55,19 +74,7 @@ class Lobby {
         this.createdAt = Date.now();
         this.popularity = 0;
         this.gameMode = null;
-        this.currentSetter = null;
-        this.currentGuesser = null;
-        this.setterIndex = 0;
-        this.sequence = [];
-        this.guesses = [];
-        this.round = 0;
-        this.gameOver = false;
-        this.winner = null;
-        this.settingPhase = false;
-        this.tempSequence = [];
-        this.tempGuess = [];
-        this.removeMode = false;
-        this.currentGuesserIndex = 1;
+        this.gameInstance = null;
     }
 
     addPlayer(player) {
@@ -105,9 +112,7 @@ class Lobby {
                 name: p.name, 
                 isCreator: p.id === this.creatorId 
             })),
-            gameMode: this.gameMode,
-            gameOver: this.gameOver,
-            winner: this.winner
+            gameMode: this.gameMode
         };
         
         if (forPlayerId && this.players.some(p => p.id === forPlayerId)) {
@@ -118,29 +123,10 @@ class Lobby {
     }
 
     getGameState(forPlayerId) {
-        const player = this.players.find(p => p.id === forPlayerId);
-        const isSetter = this.currentSetter && this.currentSetter.id === forPlayerId;
-        const isGuesser = this.currentGuesser && this.currentGuesser.id === forPlayerId;
-        
-        return {
-            isSetting: this.settingPhase && isSetter,
-            isGuessing: !this.settingPhase && isGuesser,
-            isSpectator: !isSetter && !isGuesser && this.isGameStarted,
-            currentSetter: this.currentSetter ? this.currentSetter.name : null,
-            currentGuesser: this.currentGuesser ? this.currentGuesser.name : null,
-            sequence: this.settingPhase ? this.tempSequence : this.sequence,
-            guesses: this.guesses,
-            round: this.round,
-            gameOver: this.gameOver,
-            winner: this.winner,
-            players: this.players.map(p => p.name),
-            setterIndex: this.setterIndex,
-            totalPlayers: this.players.length,
-            code: this.code,
-            removeMode: this.removeMode,
-            tempSequence: this.tempSequence,
-            tempGuess: this.tempGuess
-        };
+        if (this.gameInstance && typeof this.gameInstance.getState === 'function') {
+            return this.gameInstance.getState(forPlayerId);
+        }
+        return null;
     }
 }
 
@@ -177,16 +163,24 @@ wss.on('connection', (ws) => {
                         type: 'joined',
                         playerId: player.id,
                         playerName: playerName,
-                        lobbies: getPopularLobbies()
+                        lobbies: getPopularLobbies(),
+                        games: Object.keys(games)
                     }));
                     break;
 
                 case 'createLobby':
-                    const { lobbyName, maxPlayers, isPrivate } = data;
+                    const { lobbyName, maxPlayers, isPrivate, gameMode } = data;
                     const newLobby = new Lobby(lobbyName, parseInt(maxPlayers), isPrivate, player.id);
                     newLobby.addPlayer(player);
+                    newLobby.gameMode = gameMode;
                     player.currentLobbyId = newLobby.id;
                     lobbies.push(newLobby);
+                    
+                    // Создаем экземпляр игры
+                    if (games[gameMode]) {
+                        const GameClass = games[gameMode].class;
+                        newLobby.gameInstance = new GameClass(newLobby);
+                    }
                     
                     broadcastLobbies();
                     
@@ -210,6 +204,10 @@ wss.on('connection', (ws) => {
                             }
                             lobby.addPlayer(player);
                             player.currentLobbyId = lobby.id;
+                            
+                            if (lobby.gameInstance && typeof lobby.gameInstance.onPlayerJoin === 'function') {
+                                lobby.gameInstance.onPlayerJoin(player.id);
+                            }
                             
                             broadcastLobbyUpdate(lobby.id);
                             broadcastLobbies();
@@ -239,6 +237,11 @@ wss.on('connection', (ws) => {
                         if (foundLobby.players.length < foundLobby.maxPlayers) {
                             foundLobby.addPlayer(player);
                             player.currentLobbyId = foundLobby.id;
+                            
+                            if (foundLobby.gameInstance && typeof foundLobby.gameInstance.onPlayerJoin === 'function') {
+                                foundLobby.gameInstance.onPlayerJoin(player.id);
+                            }
+                            
                             broadcastLobbyUpdate(foundLobby.id);
                             broadcastLobbies();
                             ws.send(JSON.stringify({
@@ -263,6 +266,10 @@ wss.on('connection', (ws) => {
                     if (player && player.currentLobbyId) {
                         const leaveLobby = lobbies.find(l => l.id === player.currentLobbyId);
                         if (leaveLobby) {
+                            if (leaveLobby.gameInstance && typeof leaveLobby.gameInstance.onPlayerLeave === 'function') {
+                                leaveLobby.gameInstance.onPlayerLeave(player.id);
+                            }
+                            
                             const isEmpty = leaveLobby.removePlayer(player.id);
                             if (isEmpty) {
                                 lobbies = lobbies.filter(l => l.id !== leaveLobby.id);
@@ -285,21 +292,10 @@ wss.on('connection', (ws) => {
                         if (gameLobby && gameLobby.creatorId === player.id) {
                             if (gameLobby.players.length >= 2) {
                                 gameLobby.isGameStarted = true;
-                                gameLobby.gameMode = data.gameMode || 'Угадай последовательность';
-                                gameLobby.setterIndex = 0;
-                                gameLobby.currentSetter = gameLobby.players[0];
-                                // Угадывает следующий игрок (индекс 1)
-                                gameLobby.currentGuesser = gameLobby.players[1 % gameLobby.players.length];
-                                gameLobby.currentGuesserIndex = 1;
-                                gameLobby.settingPhase = true;
-                                gameLobby.sequence = [];
-                                gameLobby.tempSequence = [];
-                                gameLobby.tempGuess = [];
-                                gameLobby.guesses = [];
-                                gameLobby.round = 0;
-                                gameLobby.gameOver = false;
-                                gameLobby.winner = null;
-                                gameLobby.removeMode = false;
+                                
+                                if (gameLobby.gameInstance && typeof gameLobby.gameInstance.startGame === 'function') {
+                                    gameLobby.gameInstance.startGame();
+                                }
                                 
                                 broadcastLobbyUpdate(gameLobby.id);
                                 broadcastLobbies();
@@ -329,188 +325,16 @@ wss.on('connection', (ws) => {
                     }
                     break;
 
-                case 'toggleRemoveMode':
+                case 'gameAction':
                     if (player && player.currentLobbyId) {
                         const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
-                        if (gameLobby && gameLobby.settingPhase && gameLobby.currentSetter.id === player.id) {
-                            gameLobby.removeMode = !gameLobby.removeMode;
-                            broadcastGameState(gameLobby.id);
-                        }
-                    }
-                    break;
-
-                case 'addColorToSequence':
-                    if (player && player.currentLobbyId) {
-                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
-                        if (gameLobby && gameLobby.settingPhase && gameLobby.currentSetter.id === player.id) {
-                            if (gameLobby.removeMode) {
-                                if (gameLobby.tempSequence.length > 0) {
-                                    gameLobby.tempSequence.pop();
-                                    broadcastGameState(gameLobby.id);
-                                }
-                            } else {
-                                if (gameLobby.tempSequence.length < 5) {
-                                    gameLobby.tempSequence.push(data.color);
-                                    broadcastGameState(gameLobby.id);
-                                }
-                            }
-                        }
-                    }
-                    break;
-
-                case 'removeColorFromSequence':
-                    if (player && player.currentLobbyId) {
-                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
-                        if (gameLobby && gameLobby.settingPhase && gameLobby.currentSetter.id === player.id) {
-                            const index = data.index;
-                            if (index >= 0 && index < gameLobby.tempSequence.length) {
-                                gameLobby.tempSequence.splice(index, 1);
+                        if (gameLobby && gameLobby.gameInstance) {
+                            const result = gameLobby.gameInstance.handleAction(player.id, data.action, data.params);
+                            if (result) {
                                 broadcastGameState(gameLobby.id);
-                            }
-                        }
-                    }
-                    break;
-
-                case 'submitSequence':
-                    if (player && player.currentLobbyId) {
-                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
-                        if (gameLobby && gameLobby.settingPhase && gameLobby.currentSetter.id === player.id) {
-                            if (gameLobby.tempSequence.length === 5) {
-                                gameLobby.sequence = [...gameLobby.tempSequence];
-                                gameLobby.settingPhase = false;
-                                gameLobby.round++;
-                                gameLobby.guesses = [];
-                                gameLobby.tempSequence = [];
-                                gameLobby.tempGuess = [];
-                                gameLobby.removeMode = false;
-                                
-                                broadcastGameState(gameLobby.id);
-                            }
-                        }
-                    }
-                    break;
-
-                case 'addColorToGuess':
-                    if (player && player.currentLobbyId) {
-                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
-                        if (gameLobby && !gameLobby.settingPhase && gameLobby.currentGuesser.id === player.id) {
-                            if (gameLobby.tempGuess.length < 5) {
-                                gameLobby.tempGuess.push(data.color);
-                                broadcastGameState(gameLobby.id);
-                            }
-                        }
-                    }
-                    break;
-
-                case 'removeColorFromGuess':
-                    if (player && player.currentLobbyId) {
-                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
-                        if (gameLobby && !gameLobby.settingPhase && gameLobby.currentGuesser.id === player.id) {
-                            const index = data.index;
-                            if (index >= 0 && index < gameLobby.tempGuess.length) {
-                                gameLobby.tempGuess.splice(index, 1);
-                                broadcastGameState(gameLobby.id);
-                            }
-                        }
-                    }
-                    break;
-
-                case 'submitGuess':
-                    if (player && player.currentLobbyId) {
-                        const gameLobby = lobbies.find(l => l.id === player.currentLobbyId);
-                        if (gameLobby && !gameLobby.settingPhase && gameLobby.currentGuesser.id === player.id) {
-                            if (gameLobby.tempGuess.length === 5) {
-                                const guess = [...gameLobby.tempGuess];
-                                gameLobby.guesses.push(guess);
-                                gameLobby.tempGuess = [];
-                                
-                                let correct = 0;
-                                let wrongPosition = 0;
-                                const sequenceCopy = [...gameLobby.sequence];
-                                const guessCopy = [...guess];
-                                
-                                for (let i = 0; i < sequenceCopy.length; i++) {
-                                    if (sequenceCopy[i] === guessCopy[i]) {
-                                        correct++;
-                                        sequenceCopy[i] = null;
-                                        guessCopy[i] = null;
-                                    }
-                                }
-                                
-                                for (let i = 0; i < guessCopy.length; i++) {
-                                    if (guessCopy[i] !== null) {
-                                        const index = sequenceCopy.indexOf(guessCopy[i]);
-                                        if (index !== -1) {
-                                            wrongPosition++;
-                                            sequenceCopy[index] = null;
-                                        }
-                                    }
-                                }
-                                
-                                const result = {
-                                    guess: guess,
-                                    correct: correct,
-                                    wrongPosition: wrongPosition,
-                                    isWin: correct === 5
-                                };
-                                
-                                broadcastGameResult(gameLobby.id, result);
-                                
-                                if (result.isWin) {
-                                    gameLobby.gameOver = true;
-                                    gameLobby.winner = player.id;
-                                    broadcastGameState(gameLobby.id);
-                                    
-                                    setTimeout(() => {
-                                        gameLobby.isGameStarted = false;
-                                        gameLobby.gameOver = false;
-                                        gameLobby.winner = null;
-                                        gameLobby.sequence = [];
-                                        gameLobby.tempSequence = [];
-                                        gameLobby.tempGuess = [];
-                                        gameLobby.guesses = [];
-                                        broadcastLobbyUpdate(gameLobby.id);
-                                        broadcastLobbies();
-                                    }, 5000);
-                                } else {
-                                    // Передаем ход следующему игроку
-                                    const totalPlayers = gameLobby.players.length;
-                                    // Тот кто загадывал остается загадывающим на следующий раунд
-                                    // А угадывающий меняется на следующего
-                                    const currentGuesserIndex = gameLobby.players.findIndex(p => p.id === player.id);
-                                    const nextGuesserIndex = (currentGuesserIndex + 1) % totalPlayers;
-                                    
-                                    // Если следующий угадывающий - это тот кто загадывал, пропускаем
-                                    let nextGuesser = gameLobby.players[nextGuesserIndex];
-                                    if (nextGuesser.id === gameLobby.currentSetter.id) {
-                                        // Переходим к следующему после сеттера
-                                        const afterSetterIndex = (nextGuesserIndex + 1) % totalPlayers;
-                                        nextGuesser = gameLobby.players[afterSetterIndex];
-                                    }
-                                    
-                                    // Если остался только сеттер, начинаем новый раунд с новым сеттером
-                                    if (nextGuesser.id === gameLobby.currentSetter.id) {
-                                        // Все угадали, начинаем новый раунд с новым сеттером
-                                        const newSetterIndex = (gameLobby.setterIndex + 1) % totalPlayers;
-                                        gameLobby.setterIndex = newSetterIndex;
-                                        gameLobby.currentSetter = gameLobby.players[newSetterIndex];
-                                        // Угадывает следующий после сеттера
-                                        const newGuesserIndex = (newSetterIndex + 1) % totalPlayers;
-                                        gameLobby.currentGuesser = gameLobby.players[newGuesserIndex];
-                                        gameLobby.currentGuesserIndex = newGuesserIndex;
-                                        gameLobby.settingPhase = true;
-                                        gameLobby.sequence = [];
-                                        gameLobby.tempSequence = [];
-                                        gameLobby.tempGuess = [];
-                                        gameLobby.guesses = [];
-                                        gameLobby.round++;
-                                    } else {
-                                        // Просто меняем угадывающего
-                                        gameLobby.currentGuesser = nextGuesser;
-                                        gameLobby.currentGuesserIndex = gameLobby.players.findIndex(p => p.id === nextGuesser.id);
-                                    }
-                                    
-                                    broadcastGameState(gameLobby.id);
+                                if (result.broadcast) {
+                                    // Широковещательное сообщение
+                                    broadcastGameMessage(gameLobby.id, result.message);
                                 }
                             }
                         }
@@ -540,10 +364,13 @@ wss.on('connection', (ws) => {
                                 lobby: currentLobby.getInfo(player.id)
                             }));
                             if (currentLobby.isGameStarted) {
-                                ws.send(JSON.stringify({
-                                    type: 'gameState',
-                                    state: currentLobby.getGameState(player.id)
-                                }));
+                                const state = currentLobby.getGameState(player.id);
+                                if (state) {
+                                    ws.send(JSON.stringify({
+                                        type: 'gameState',
+                                        state: state
+                                    }));
+                                }
                             }
                         }
                     }
@@ -562,6 +389,10 @@ wss.on('connection', (ws) => {
         if (player && player.currentLobbyId) {
             const lobby = lobbies.find(l => l.id === player.currentLobbyId);
             if (lobby) {
+                if (lobby.gameInstance && typeof lobby.gameInstance.onPlayerLeave === 'function') {
+                    lobby.gameInstance.onPlayerLeave(player.id);
+                }
+                
                 const isEmpty = lobby.removePlayer(player.id);
                 if (isEmpty) {
                     lobbies = lobbies.filter(l => l.id !== lobby.id);
@@ -627,17 +458,20 @@ function broadcastLobbyUpdate(lobbyId) {
 
 function broadcastGameState(lobbyId) {
     const lobby = lobbies.find(l => l.id === lobbyId);
-    if (lobby) {
+    if (lobby && lobby.gameInstance) {
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 const playerId = Object.keys(players).find(id => players[id].socketId === client._socket.remoteAddress);
                 if (playerId) {
                     const player = players[playerId];
                     if (player && player.currentLobbyId === lobbyId) {
-                        client.send(JSON.stringify({
-                            type: 'gameState',
-                            state: lobby.getGameState(parseInt(playerId))
-                        }));
+                        const state = lobby.gameInstance.getState(parseInt(playerId));
+                        if (state) {
+                            client.send(JSON.stringify({
+                                type: 'gameState',
+                                state: state
+                            }));
+                        }
                     }
                 }
             }
@@ -645,7 +479,7 @@ function broadcastGameState(lobbyId) {
     }
 }
 
-function broadcastGameResult(lobbyId, result) {
+function broadcastGameMessage(lobbyId, message) {
     const lobby = lobbies.find(l => l.id === lobbyId);
     if (lobby) {
         wss.clients.forEach(client => {
@@ -655,10 +489,8 @@ function broadcastGameResult(lobbyId, result) {
                     const player = players[playerId];
                     if (player && player.currentLobbyId === lobbyId) {
                         client.send(JSON.stringify({
-                            type: 'gameResult',
-                            result: result,
-                            isWin: result.isWin,
-                            winner: result.isWin ? lobby.winner : null
+                            type: 'gameMessage',
+                            message: message
                         }));
                     }
                 }
@@ -683,13 +515,18 @@ app.get('/api/lobbies/search', (req, res) => {
     });
 });
 
+app.get('/api/games', (req, res) => {
+    res.json(Object.keys(games));
+});
+
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'ok', 
         uptime: process.uptime(),
         timestamp: Date.now(),
         lobbiesCount: lobbies.length,
-        playersCount: Object.keys(players).length
+        playersCount: Object.keys(players).length,
+        games: Object.keys(games)
     });
 });
 

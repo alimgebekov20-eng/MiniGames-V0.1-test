@@ -251,13 +251,18 @@ class GuessSequenceGame {
                             this.winner = playerId;
                             return;
                         } else {
-                            // Передаем ход следующему
+                            // ПЕРЕДАЕМ ХОД СЛЕДУЮЩЕМУ ИГРОКУ
                             const totalPlayers = this.lobby.players.length;
-                            const nextGuesserIndex = (this.currentGuesserIndex + 1) % totalPlayers;
                             
+                            // Находим следующего игрока после текущего угадывающего
+                            let nextGuesserIndex = (this.currentGuesserIndex + 1) % totalPlayers;
+                            
+                            // Если следующий игрок - это загадывающий, то начинаем новый раунд
                             if (nextGuesserIndex === this.currentSetterIndex) {
+                                // Новый раунд: новый загадывающий (следующий после старого)
                                 const newSetterIndex = (this.currentSetterIndex + 1) % totalPlayers;
                                 this.currentSetterIndex = newSetterIndex;
+                                // Угадывает следующий после загадывающего
                                 this.currentGuesserIndex = (newSetterIndex + 1) % totalPlayers;
                                 this.settingPhase = true;
                                 this.tempSequence = [];
@@ -268,6 +273,7 @@ class GuessSequenceGame {
                                 this.resultData = null;
                                 this.removeMode = false;
                             } else {
+                                // Просто передаем ход следующему игроку
                                 this.currentGuesserIndex = nextGuesserIndex;
                                 this.showingResult = false;
                                 this.resultData = null;
@@ -295,12 +301,18 @@ class GuessSequenceGame {
                     this.resultData = null;
                     return {};
                 } else {
+                    // ПЕРЕДАЕМ ХОД СЛЕДУЮЩЕМУ ИГРОКУ
                     const totalPlayers = this.lobby.players.length;
-                    const nextGuesserIndex = (this.currentGuesserIndex + 1) % totalPlayers;
                     
+                    // Находим следующего игрока после текущего угадывающего
+                    let nextGuesserIndex = (this.currentGuesserIndex + 1) % totalPlayers;
+                    
+                    // Если следующий игрок - это загадывающий, то начинаем новый раунд
                     if (nextGuesserIndex === this.currentSetterIndex) {
+                        // Новый раунд: новый загадывающий (следующий после старого)
                         const newSetterIndex = (this.currentSetterIndex + 1) % totalPlayers;
                         this.currentSetterIndex = newSetterIndex;
+                        // Угадывает следующий после загадывающего
                         this.currentGuesserIndex = (newSetterIndex + 1) % totalPlayers;
                         this.settingPhase = true;
                         this.tempSequence = [];
@@ -309,6 +321,7 @@ class GuessSequenceGame {
                         this.round++;
                         this.removeMode = false;
                     } else {
+                        // Просто передаем ход следующему игроку
                         this.currentGuesserIndex = nextGuesserIndex;
                     }
                     

@@ -662,6 +662,10 @@
             color: white;
         }
 
+        #gameContent {
+            min-height: 400px;
+        }
+
         @media (max-width: 768px) {
             .lobby-grid {
                 grid-template-columns: 1fr;
@@ -760,6 +764,12 @@
                 <label for="maxPlayersInput">Максимум игроков</label>
                 <input type="number" id="maxPlayersInput" min="2" max="8" value="4" />
             </div>
+            <div class="form-group">
+                <label for="gameModeSelect">Режим игры</label>
+                <select id="gameModeSelect">
+                    <option value="GuessSequence">🎯 Угадай последовательность</option>
+                </select>
+            </div>
             <div class="form-group checkbox-group">
                 <input type="checkbox" id="isPrivateInput" />
                 <label for="isPrivateInput">Закрытое лобби (только по коду)</label>
@@ -788,102 +798,21 @@
             </div>
 
             <div class="lobby-actions-bar">
-                <button id="startGameBtn" onclick="showGameModes()" class="btn btn-success">▶️ Начать игру</button>
+                <button id="startGameBtn" onclick="startGame()" class="btn btn-success">▶️ Начать игру</button>
             </div>
         </div>
 
         <!-- Игровой экран -->
         <div id="gameView" class="game-view">
             <div class="game-header">
-                <h1 id="gameTitle">🎮 Угадай последовательность</h1>
-                <div class="game-mode" id="gameModeDisplay">Режим: Угадай последовательность</div>
+                <h1 id="gameTitle">🎮 Игра</h1>
+                <div class="game-mode" id="gameModeDisplay"></div>
                 <div class="game-status" id="gameStatus"></div>
             </div>
-
-            <div class="game-players">
-                <div class="player-roles">
-                    <div class="role-display setter">
-                        <span class="role-label">Загадывает:</span> <span id="setterName">-</span>
-                    </div>
-                    <div class="role-display guesser">
-                        <span class="role-label">Угадывает:</span> <span id="guesserName">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Фаза загадывания -->
-            <div id="settingPhase" style="display: none;">
-                <div style="text-align: center; margin: 20px 0;">
-                    <h3>Выберите 5 цветов в правильной последовательности</h3>
-                    <p style="color: #666;">Нажмите на цвет, чтобы добавить его.</p>
-                </div>
-
-                <div class="remove-toggle">
-                    <span class="toggle-label">🔧 Режим убирания:</span>
-                    <button onclick="toggleRemoveMode()" class="btn btn-warning" id="removeModeBtn" style="padding: 8px 20px;">
-                        🔄 <span id="removeModeStatus">Выкл</span>
-                    </button>
-                    <span class="toggle-status off" id="removeModeIndicator">Выкл</span>
-                </div>
-                
-                <div class="color-palette">
-                    <button class="color-btn" style="background: #4a90d9;" onclick="addColorToSequence('blue')"></button>
-                    <button class="color-btn" style="background: #e74c3c;" onclick="addColorToSequence('red')"></button>
-                    <button class="color-btn" style="background: #2ecc71;" onclick="addColorToSequence('green')"></button>
-                    <button class="color-btn" style="background: #f1c40f;" onclick="addColorToSequence('yellow')"></button>
-                    <button class="color-btn" style="background: #9b59b6;" onclick="addColorToSequence('purple')"></button>
-                    <button class="color-btn" style="background: #8B4513;" onclick="addColorToSequence('brown')"></button>
-                </div>
-
-                <div class="sequence-container" id="sequenceDisplay"></div>
-
-                <div style="text-align: center;">
-                    <button onclick="submitSequence()" class="btn btn-success" id="submitSequenceBtn" style="display: none;">✅ Подтвердить</button>
-                </div>
-            </div>
-
-            <!-- Фаза угадывания -->
-            <div id="guessingPhase" style="display: none;">
-                <div style="text-align: center; margin: 20px 0;">
-                    <h3>Угадайте последовательность!</h3>
-                    <p style="color: #666;">Выберите 5 цветов в правильном порядке</p>
-                </div>
-
-                <div class="color-palette">
-                    <button class="color-btn" style="background: #4a90d9;" onclick="addColorToGuess('blue')"></button>
-                    <button class="color-btn" style="background: #e74c3c;" onclick="addColorToGuess('red')"></button>
-                    <button class="color-btn" style="background: #2ecc71;" onclick="addColorToGuess('green')"></button>
-                    <button class="color-btn" style="background: #f1c40f;" onclick="addColorToGuess('yellow')"></button>
-                    <button class="color-btn" style="background: #9b59b6;" onclick="addColorToGuess('purple')"></button>
-                    <button class="color-btn" style="background: #8B4513;" onclick="addColorToGuess('brown')"></button>
-                </div>
-
-                <div class="sequence-container" id="guessDisplay"></div>
-
-                <div style="text-align: center;">
-                    <button onclick="submitGuess()" class="btn btn-primary" id="submitGuessBtn" style="display: none;">🎯 Угадать!</button>
-                </div>
-            </div>
-
-            <!-- Результаты -->
-            <div id="resultPhase" style="display: none;">
-                <div id="resultDisplay" style="text-align: center; margin: 30px 0; padding: 30px; background: #f8f9fa; border-radius: 15px;"></div>
-            </div>
-
+            <div id="gameContent"></div>
             <div style="text-align: center; margin-top: 20px;">
                 <button onclick="leaveGame()" class="btn btn-danger">🚪 Выйти из игры</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно выбора режима -->
-    <div class="game-mode-modal" id="gameModeModal">
-        <div class="modal-content">
-            <h2>Выберите режим игры</h2>
-            <button onclick="startGameWithMode('Угадай последовательность')" class="btn btn-primary mode-btn">
-                🎯 Угадай последовательность
-            </button>
-            <button onclick="closeGameModes()" class="btn btn-secondary mode-btn" style="margin-top: 10px;">Отмена</button>
         </div>
     </div>
 
@@ -900,7 +829,8 @@
         let currentPage = 0;
         let currentSearchQuery = '';
         let codeVisible = true;
-        let gameState = null;
+        let gameClient = null;
+        let gameName = '';
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
@@ -1008,7 +938,7 @@
                     break;
 
                 case 'gameStarted':
-                    showGameView();
+                    showGameView(data.lobby.gameMode);
                     showNotification('Игра началась! 🎮', 'success');
                     setTimeout(() => {
                         if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
@@ -1020,11 +950,13 @@
                     break;
 
                 case 'gameState':
-                    updateGameView(data.state);
+                    if (gameClient) {
+                        gameClient.update(data.state);
+                    }
                     break;
 
-                case 'gameResult':
-                    handleGameResult(data);
+                case 'gameMessage':
+                    showNotification(data.message, 'info');
                     break;
 
                 case 'searchResults':
@@ -1040,216 +972,81 @@
             }
         }
 
-        // Обновление игрового вида
-        function updateGameView(state) {
-            gameState = state;
-            document.getElementById('setterName').textContent = state.currentSetter || '-';
-            document.getElementById('guesserName').textContent = state.currentGuesser || '-';
-            
-            if (state.gameOver) {
-                showGameResult(state.winner);
-                return;
-            }
-            
-            if (state.isSetting) {
-                showSettingPhase(state);
-            } else if (state.isGuessing) {
-                showGuessingPhase(state);
-            } else {
-                showSpectatorPhase();
-            }
-        }
-
-        function showSettingPhase(state) {
-            document.getElementById('settingPhase').style.display = 'block';
-            document.getElementById('guessingPhase').style.display = 'none';
-            document.getElementById('resultPhase').style.display = 'none';
-            document.getElementById('gameStatus').textContent = '🎨 Выберите последовательность из 5 цветов';
-            
-            // Обновляем состояние кнопки
-            const statusEl = document.getElementById('removeModeStatus');
-            const indicatorEl = document.getElementById('removeModeIndicator');
-            const btnEl = document.getElementById('removeModeBtn');
-            
-            if (state.removeMode) {
-                statusEl.textContent = 'Вкл';
-                indicatorEl.textContent = 'Вкл';
-                indicatorEl.className = 'toggle-status on';
-                btnEl.style.background = '#fc8181';
-            } else {
-                statusEl.textContent = 'Выкл';
-                indicatorEl.textContent = 'Выкл';
-                indicatorEl.className = 'toggle-status off';
-                btnEl.style.background = '#ed8936';
-            }
-            
-            // Отображаем последовательность из сервера
-            const container = document.getElementById('sequenceDisplay');
-            const tempSeq = state.tempSequence || [];
-            if (tempSeq.length === 0) {
-                container.innerHTML = '<div style="color: #999; padding: 20px;">Нажмите на цвет, чтобы добавить</div>';
-            } else {
-                container.innerHTML = tempSeq.map((color, index) => `
-                    <div class="color-block" style="background: ${getColorValue(color)};" 
-                         onclick="removeColorFromSequence(${index})"></div>
-                `).join('');
-            }
-            
-            document.getElementById('submitSequenceBtn').style.display = tempSeq.length === 5 ? 'inline-block' : 'none';
-        }
-
-        function showGuessingPhase(state) {
-            document.getElementById('settingPhase').style.display = 'none';
-            document.getElementById('guessingPhase').style.display = 'block';
-            document.getElementById('resultPhase').style.display = 'none';
-            document.getElementById('gameStatus').textContent = '🤔 Угадайте последовательность!';
-            
-            const container = document.getElementById('guessDisplay');
-            const tempGuess = state.tempGuess || [];
-            if (tempGuess.length === 0) {
-                container.innerHTML = '<div style="color: #999; padding: 20px;">Выберите 5 цветов</div>';
-            } else {
-                container.innerHTML = tempGuess.map((color, index) => `
-                    <div class="color-block" style="background: ${getColorValue(color)};" 
-                         onclick="removeColorFromGuess(${index})"></div>
-                `).join('');
-            }
-            
-            document.getElementById('submitGuessBtn').style.display = tempGuess.length === 5 ? 'inline-block' : 'none';
-        }
-
-        function showSpectatorPhase() {
-            document.getElementById('settingPhase').style.display = 'none';
-            document.getElementById('guessingPhase').style.display = 'none';
-            document.getElementById('resultPhase').style.display = 'none';
-            document.getElementById('gameStatus').textContent = '👀 Наблюдайте за игрой...';
-        }
-
-        // Действия клиента
-        function toggleRemoveMode() {
+        // Действие игры
+        function gameAction(action, params = {}) {
             if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
                 ws.send(JSON.stringify({
-                    type: 'toggleRemoveMode'
+                    type: 'gameAction',
+                    action: action,
+                    params: params
                 }));
             }
         }
 
-        function addColorToSequence(color) {
-            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
-                ws.send(JSON.stringify({
-                    type: 'addColorToSequence',
-                    color: color
-                }));
-            }
-        }
-
-        function removeColorFromSequence(index) {
-            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
-                ws.send(JSON.stringify({
-                    type: 'removeColorFromSequence',
-                    index: index
-                }));
-            }
-        }
-
-        function submitSequence() {
-            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
-                ws.send(JSON.stringify({
-                    type: 'submitSequence'
-                }));
-            }
-        }
-
-        function addColorToGuess(color) {
-            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
-                ws.send(JSON.stringify({
-                    type: 'addColorToGuess',
-                    color: color
-                }));
-            }
-        }
-
-        function removeColorFromGuess(index) {
-            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
-                ws.send(JSON.stringify({
-                    type: 'removeColorFromGuess',
-                    index: index
-                }));
-            }
-        }
-
-        function submitGuess() {
-            if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
-                ws.send(JSON.stringify({
-                    type: 'submitGuess'
-                }));
-            }
-        }
-
-        function getColorValue(color) {
-            const colors = {
-                'blue': '#4a90d9',
-                'red': '#e74c3c',
-                'green': '#2ecc71',
-                'yellow': '#f1c40f',
-                'purple': '#9b59b6',
-                'brown': '#8B4513'
-            };
-            return colors[color] || '#ccc';
-        }
-
-        function handleGameResult(data) {
-            const container = document.getElementById('resultDisplay');
-            const guessColors = data.result.guess.map(color => getColorValue(color));
-            const correct = data.result.correct;
-            const wrongPosition = data.result.wrongPosition;
+        // Показать игровой вид
+        function showGameView(gameMode) {
+            document.getElementById('mainMenu').classList.remove('active');
+            document.getElementById('lobbyView').classList.remove('active');
+            document.getElementById('createLobby').classList.remove('active');
+            document.getElementById('gameView').classList.add('active');
             
-            let resultHTML = `
-                <div class="result-row">
-                    <span class="result-label">Ваша попытка:</span>
-                    ${guessColors.map(color => `<div class="color-block" style="background: ${color};"></div>`).join('')}
-                </div>
-                <div class="result-row">
-                    <span class="result-label">Правильно на месте:</span>
-                    <span style="font-size: 24px; font-weight: bold; color: #2ecc71;">${'✅'.repeat(correct)}</span>
-                    <span style="font-size: 18px;">(${correct}/5)</span>
-                </div>
-                <div class="result-row">
-                    <span class="result-label">Правильно не на месте:</span>
-                    <span style="font-size: 24px; font-weight: bold; color: #f1c40f;">${'🟡'.repeat(wrongPosition)}</span>
-                    <span style="font-size: 18px;">(${wrongPosition})</span>
-                </div>
-            `;
+            document.getElementById('gameTitle').textContent = `🎮 ${gameMode || 'Игра'}`;
+            document.getElementById('gameModeDisplay').textContent = `Режим: ${gameMode || 'Игра'}`;
             
-            if (data.isWin) {
-                const winnerName = document.getElementById('playerName').textContent;
-                resultHTML += `
-                    <div style="margin-top: 20px; padding: 20px; background: #d4edda; border-radius: 10px;">
-                        <span style="font-size: 28px; font-weight: bold; color: #155724;">🎉 ${winnerName} ПОБЕДИЛ!</span>
+            // Загружаем клиент игры
+            gameName = gameMode || 'GuessSequence';
+            loadGameClient(gameName);
+        }
+
+        // Загрузка клиента игры
+        function loadGameClient(gameName) {
+            // Пытаемся загрузить клиент игры динамически
+            try {
+                // Проверяем, есть ли уже загруженный клиент
+                if (window[gameName + 'Client']) {
+                    gameClient = new window[gameName + 'Client']();
+                    const container = document.getElementById('gameContent');
+                    gameClient.render(container, gameAction);
+                    return;
+                }
+                
+                // Загружаем скрипт клиента
+                const script = document.createElement('script');
+                script.src = `/games/${gameName}/${gameName}Client.js`;
+                script.onload = () => {
+                    if (window[gameName + 'Client']) {
+                        gameClient = new window[gameName + 'Client']();
+                        const container = document.getElementById('gameContent');
+                        gameClient.render(container, gameAction);
+                    } else {
+                        showNotification('Ошибка загрузки игры', 'error');
+                    }
+                };
+                script.onerror = () => {
+                    // Если скрипт не загрузился, показываем заглушку
+                    document.getElementById('gameContent').innerHTML = `
+                        <div style="text-align:center;padding:40px;">
+                            <div style="font-size:48px;margin-bottom:20px;">🎮</div>
+                            <h3>Игра: ${gameName}</h3>
+                            <p style="color:#999;margin-top:10px;">Загрузка игры...</p>
+                        </div>
+                    `;
+                };
+                document.head.appendChild(script);
+            } catch (e) {
+                console.error('Error loading game client:', e);
+                document.getElementById('gameContent').innerHTML = `
+                    <div style="text-align:center;padding:40px;">
+                        <div style="font-size:48px;margin-bottom:20px;">⚠️</div>
+                        <h3>Ошибка загрузки игры</h3>
+                        <p style="color:#999;margin-top:10px;">Попробуйте перезайти в лобби</p>
                     </div>
-                    <div style="margin-top: 10px; color: #666;">Возвращение в лобби через 5 секунд...</div>
                 `;
             }
-            
-            container.innerHTML = resultHTML;
-            document.getElementById('resultPhase').style.display = 'block';
-            document.getElementById('gameStatus').textContent = data.isWin ? '🎉 Поздравляем!' : 'Попробуйте еще раз!';
         }
 
-        function showGameResult(winnerId) {
-            document.getElementById('settingPhase').style.display = 'none';
-            document.getElementById('guessingPhase').style.display = 'none';
-            document.getElementById('resultPhase').style.display = 'block';
-            document.getElementById('gameStatus').textContent = '🏆 Игра завершена!';
-            
-            const container = document.getElementById('resultDisplay');
-            container.innerHTML = `
-                <div class="winner-text">🎉 Игра завершена!</div>
-                <p style="font-size: 18px; margin-top: 20px;">Возвращение в лобби через 5 секунд...</p>
-            `;
-        }
+        // Остальные функции (renderLobbies, renderSearchResults, searchLobbies, resetSearch, refreshLobbies, joinByCode, joinLobby, createLobby, leaveLobby, startGame, showLobbyView, updateLobbyView, showMainMenu, showCreateLobby, hideCreateLobby, toggleCodeVisibility, copyLobbyCode, leaveGame, showNotification) остаются без изменений из предыдущей версии
 
-        // Отображение лобби
         function renderLobbies(lobbies) {
             const grid = document.getElementById('lobbyGrid');
             if (!lobbies || lobbies.length === 0) {
@@ -1262,6 +1059,7 @@
                     <h3>${lobby.name}</h3>
                     <div class="lobby-info">👥 ${lobby.currentPlayers}/${lobby.maxPlayers}</div>
                     <div class="lobby-info">${lobby.isPrivate ? '🔒 Закрыто' : '🔓 Открыто'}</div>
+                    <div class="lobby-info">🎮 ${lobby.gameMode || 'Без режима'}</div>
                     <span class="lobby-status ${lobby.currentPlayers === lobby.maxPlayers ? 'status-full' : lobby.isPrivate ? 'status-private' : 'status-open'}">
                         ${lobby.currentPlayers === lobby.maxPlayers ? 'Заполнено' : lobby.isPrivate ? 'По коду' : 'Открыто'}
                     </span>
@@ -1357,6 +1155,7 @@
             const name = document.getElementById('lobbyNameInput').value.trim();
             const maxPlayers = document.getElementById('maxPlayersInput').value;
             const isPrivate = document.getElementById('isPrivateInput').checked;
+            const gameMode = document.getElementById('gameModeSelect').value;
 
             if (!name) {
                 showNotification('Введите название лобби', 'error');
@@ -1372,7 +1171,8 @@
                 type: 'createLobby',
                 lobbyName: name,
                 maxPlayers: maxPlayers,
-                isPrivate: isPrivate
+                isPrivate: isPrivate,
+                gameMode: gameMode
             }));
 
             hideCreateLobby();
@@ -1388,20 +1188,10 @@
             }
         }
 
-        function showGameModes() {
-            document.getElementById('gameModeModal').classList.add('active');
-        }
-
-        function closeGameModes() {
-            document.getElementById('gameModeModal').classList.remove('active');
-        }
-
-        function startGameWithMode(mode) {
-            closeGameModes();
+        function startGame() {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
-                    type: 'startGame',
-                    gameMode: mode
+                    type: 'startGame'
                 }));
             }
         }
@@ -1453,6 +1243,7 @@
             document.getElementById('createLobby').classList.remove('active');
             document.getElementById('mainMenu').classList.add('active');
             refreshLobbies();
+            gameClient = null;
         }
 
         function showCreateLobby() {
@@ -1473,7 +1264,7 @@
             
             codeVisible = !codeVisible;
             if (codeVisible) {
-                codeElement.textContent = gameState ? gameState.code : '------';
+                codeElement.textContent = '------';
                 hideBtn.textContent = '👁️';
             } else {
                 codeElement.textContent = '●●●●●●';
@@ -1498,17 +1289,15 @@
             }
         }
 
-        function showGameView() {
-            document.getElementById('mainMenu').classList.remove('active');
-            document.getElementById('lobbyView').classList.remove('active');
-            document.getElementById('createLobby').classList.remove('active');
-            document.getElementById('gameView').classList.add('active');
-        }
-
         function leaveGame() {
             if (confirm('Вы уверены, что хотите выйти из игры?')) {
                 document.getElementById('gameView').classList.remove('active');
                 showMainMenu();
+                if (ws && ws.readyState === WebSocket.OPEN && currentLobbyId) {
+                    ws.send(JSON.stringify({
+                        type: 'leaveLobby'
+                    }));
+                }
             }
         }
 

@@ -67,6 +67,7 @@ class Lobby {
         this.tempSequence = [];
         this.tempGuess = [];
         this.removeMode = false;
+        this.currentGuesserIndex = 1;
     }
 
     addPlayer(player) {
@@ -287,7 +288,9 @@ wss.on('connection', (ws) => {
                                 gameLobby.gameMode = data.gameMode || 'Угадай последовательность';
                                 gameLobby.setterIndex = 0;
                                 gameLobby.currentSetter = gameLobby.players[0];
-                                gameLobby.currentGuesser = gameLobby.players[1];
+                                // Угадывает следующий игрок (индекс 1)
+                                gameLobby.currentGuesser = gameLobby.players[1 % gameLobby.players.length];
+                                gameLobby.currentGuesserIndex = 1;
                                 gameLobby.settingPhase = true;
                                 gameLobby.sequence = [];
                                 gameLobby.tempSequence = [];
@@ -379,12 +382,7 @@ wss.on('connection', (ws) => {
                                 gameLobby.guesses = [];
                                 gameLobby.tempSequence = [];
                                 gameLobby.tempGuess = [];
-                                
-                                const totalPlayers = gameLobby.players.length;
-                                const nextIndex = (gameLobby.setterIndex + 1) % totalPlayers;
-                                gameLobby.setterIndex = nextIndex;
-                                gameLobby.currentSetter = gameLobby.players[nextIndex];
-                                gameLobby.currentGuesser = gameLobby.players[(nextIndex + 1) % totalPlayers];
+                                gameLobby.removeMode = false;
                                 
                                 broadcastGameState(gameLobby.id);
                             }
@@ -475,19 +473,41 @@ wss.on('connection', (ws) => {
                                         broadcastLobbies();
                                     }, 5000);
                                 } else {
+                                    // Передаем ход следующему игроку
                                     const totalPlayers = gameLobby.players.length;
-                                    const currentIndex = gameLobby.players.findIndex(p => p.id === player.id);
-                                    const nextIndex = (currentIndex + 1) % totalPlayers;
-                                    const nextPlayer = gameLobby.players[nextIndex];
+                                    // Тот кто загадывал остается загадывающим на следующий раунд
+                                    // А угадывающий меняется на следующего
+                                    const currentGuesserIndex = gameLobby.players.findIndex(p => p.id === player.id);
+                                    const nextGuesserIndex = (currentGuesserIndex + 1) % totalPlayers;
                                     
-                                    if (nextPlayer.id === gameLobby.currentSetter.id) {
+                                    // Если следующий угадывающий - это тот кто загадывал, пропускаем
+                                    let nextGuesser = gameLobby.players[nextGuesserIndex];
+                                    if (nextGuesser.id === gameLobby.currentSetter.id) {
+                                        // Переходим к следующему после сеттера
+                                        const afterSetterIndex = (nextGuesserIndex + 1) % totalPlayers;
+                                        nextGuesser = gameLobby.players[afterSetterIndex];
+                                    }
+                                    
+                                    // Если остался только сеттер, начинаем новый раунд с новым сеттером
+                                    if (nextGuesser.id === gameLobby.currentSetter.id) {
+                                        // Все угадали, начинаем новый раунд с новым сеттером
+                                        const newSetterIndex = (gameLobby.setterIndex + 1) % totalPlayers;
+                                        gameLobby.setterIndex = newSetterIndex;
+                                        gameLobby.currentSetter = gameLobby.players[newSetterIndex];
+                                        // Угадывает следующий после сеттера
+                                        const newGuesserIndex = (newSetterIndex + 1) % totalPlayers;
+                                        gameLobby.currentGuesser = gameLobby.players[newGuesserIndex];
+                                        gameLobby.currentGuesserIndex = newGuesserIndex;
                                         gameLobby.settingPhase = true;
-                                        gameLobby.currentSetter = gameLobby.players[gameLobby.setterIndex];
-                                        gameLobby.currentGuesser = gameLobby.players[(gameLobby.setterIndex + 1) % totalPlayers];
+                                        gameLobby.sequence = [];
                                         gameLobby.tempSequence = [];
                                         gameLobby.tempGuess = [];
+                                        gameLobby.guesses = [];
+                                        gameLobby.round++;
                                     } else {
-                                        gameLobby.currentGuesser = nextPlayer;
+                                        // Просто меняем угадывающего
+                                        gameLobby.currentGuesser = nextGuesser;
+                                        gameLobby.currentGuesserIndex = gameLobby.players.findIndex(p => p.id === nextGuesser.id);
                                     }
                                     
                                     broadcastGameState(gameLobby.id);
